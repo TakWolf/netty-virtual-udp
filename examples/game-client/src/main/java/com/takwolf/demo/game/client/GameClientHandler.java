@@ -1,0 +1,28 @@
+package com.takwolf.demo.game.client;
+
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class GameClientHandler extends SimpleChannelInboundHandler<String> {
+    @Override
+    public void channelActive(ChannelHandlerContext context) {
+        context.fireChannelActive();
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext context) {
+        context.fireChannelInactive();
+    }
+
+    @Override
+    protected void channelRead0(ChannelHandlerContext context, String message) {
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
+        log.error("{} Channel exception", context.channel(), cause);
+        context.close();
+    }
+}
