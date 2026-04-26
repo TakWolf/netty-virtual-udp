@@ -22,7 +22,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
     private final AttributeMap attrs = new DefaultAttributeMap();
     private final Unsafe unsafe = new DefaultUnsafe(this);
     private final CloseFuture closeFuture = new CloseFuture(this);
-    private final ChannelPipeline pipeline = new DefaultChannelPipeline2(this);
+    private final ChannelPipeline pipeline = createPipeline(this);
 
     private volatile boolean registered = false;
 

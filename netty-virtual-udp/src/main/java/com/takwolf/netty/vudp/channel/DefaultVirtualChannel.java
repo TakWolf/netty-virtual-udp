@@ -24,7 +24,7 @@ public final class DefaultVirtualChannel extends AbstractVirtualChannel implemen
 
     private final DatagramChannel wrappedChannel;
     private final Unsafe unsafe = new DefaultUnsafe(this);
-    private final ChannelPipeline pipeline = new DefaultChannelPipeline2(this);
+    private final ChannelPipeline pipeline = createPipeline(this);
 
     private DefaultVirtualChannel(DatagramChannel wrappedChannel) {
         this.wrappedChannel = wrappedChannel;

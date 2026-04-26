@@ -2,10 +2,24 @@ package com.takwolf.netty.vudp.channel;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelId;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.DefaultChannelPipeline;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.net.SocketAddress;
 
 abstract class AbstractVirtualChannel implements Channel {
+    protected static ChannelPipeline createPipeline(Channel channel) {
+        try {
+            Constructor<DefaultChannelPipeline> constructor = DefaultChannelPipeline.class.getDeclaredConstructor(Channel.class);
+            constructor.setAccessible(true);
+            return constructor.newInstance(channel);
+        } catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private boolean strValActive;
     private String strVal;
 
