@@ -1,5 +1,6 @@
 plugins {
     `java-library`
+    id("com.vanniktech.maven.publish")
 }
 
 java {
@@ -24,4 +25,37 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+mavenPublishing {
+    coordinates("io.github.takwolf.netty", "netty-virtual-udp", "0.0.0")
+
+    pom {
+        name.set("Netty Virtual UDP")
+        description.set("A Netty virtual UDP library that provides a TCP-like transport abstraction")
+        url.set("https://github.com/TakWolf/netty-virtual-udp")
+        inceptionYear.set("2026")
+        licenses {
+            license {
+                name.set("Apache-2.0")
+                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                distribution.set("repo")
+            }
+        }
+        developers {
+            developer {
+                id.set("TakWolf")
+                name.set("TakWolf")
+                url.set("https://github.com/TakWolf")
+            }
+        }
+        scm {
+            url.set("https://github.com/TakWolf/netty-virtual-udp")
+            connection.set("scm:git:git://github.com/TakWolf/netty-virtual-udp.git")
+            developerConnection.set("scm:git:ssh://git@github.com/TakWolf/netty-virtual-udp.git")
+        }
+    }
+
+    publishToMavenCentral()
+    signAllPublications()
 }
