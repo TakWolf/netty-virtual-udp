@@ -24,7 +24,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
     private final CloseFuture closeFuture = new CloseFuture(this);
     private final ChannelPipeline pipeline = createPipeline(this);
 
-    private volatile boolean registered = false;
+    private volatile boolean registered;
 
     public DefaultChildVirtualChannel(VirtualChannel parent, InetSocketAddress remoteAddress) {
         this.parent = parent;
