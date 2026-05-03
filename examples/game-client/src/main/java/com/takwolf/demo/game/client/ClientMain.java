@@ -10,6 +10,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.handler.logging.ByteBufFormat;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
@@ -31,7 +32,7 @@ public class ClientMain {
                         @Override
                         protected void initChannel(VirtualChannel channel) {
                             channel.pipeline()
-                                    .addLast(new LoggingHandler("UDP", LogLevel.INFO))
+                                    .addLast(new LoggingHandler("UDP", LogLevel.INFO, ByteBufFormat.SIMPLE))
                                     .addLast(new GameMessageDecoder())
                                     .addLast(new GameMessageEncoder())
                                     .addLast(new GameClientHandler());

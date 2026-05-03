@@ -7,7 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GameClientHandler extends SimpleChannelInboundHandler<String> {
     @Override
-    protected void channelRead0(ChannelHandlerContext context, String message) {}
+    protected void channelRead0(ChannelHandlerContext context, String message) {
+        log.info("{} Channel Read:\n{}", context.channel(), message);
+    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {}

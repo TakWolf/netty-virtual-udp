@@ -11,6 +11,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.handler.logging.ByteBufFormat;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
@@ -23,13 +24,13 @@ public class ServerMain {
             ServerVirtualBootstrap bootstrap = new ServerVirtualBootstrap()
                     .group(bossGroup, workerGroup)
                     .channel(NioDatagramChannel.class)
-                    .handler(new LoggingHandler("UDP Parent", LogLevel.INFO))
+                    .handler(new LoggingHandler("UDP Parent", LogLevel.INFO, ByteBufFormat.SIMPLE))
                     .router(RemoteAddressChannelRouter.INSTANCE)
                     .childHandler(new ChannelInitializer<ChildVirtualChannel>() {
                         @Override
                         protected void initChannel(ChildVirtualChannel channel) {
                             channel.pipeline()
-                                    .addLast(new LoggingHandler("UDP Child", LogLevel.INFO))
+                                    .addLast(new LoggingHandler("UDP Child", LogLevel.INFO, ByteBufFormat.SIMPLE))
                                     .addLast(new GameMessageDecoder())
                                     .addLast(new GameMessageEncoder())
                                     .addLast(new GameServerHandler());
