@@ -1,5 +1,6 @@
 package com.takwolf.netty.vudp.bootstrap;
 
+import com.takwolf.netty.vudp.router.VirtualChannelRouter;
 import io.netty.channel.ChannelFactory;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelOption;
@@ -35,12 +36,20 @@ public final class ServerVirtualBootstrapConfig {
         return bootstrap.handler();
     }
 
+    public VirtualChannelRouter<?, ?> router() {
+        return bootstrap.router();
+    }
+
     public Map<ChannelOption<?>, Object> options() {
         return bootstrap.options();
     }
 
     public Map<AttributeKey<?>, Object> attrs() {
         return bootstrap.attrs();
+    }
+
+    public EventLoopGroup childGroup() {
+        return bootstrap.childGroup();
     }
 
     public ChannelHandler childHandler() {
@@ -86,6 +95,13 @@ public final class ServerVirtualBootstrapConfig {
         if (handler != null) {
             builder.append("handler: ")
                     .append(handler)
+                    .append(", ");
+        }
+
+        VirtualChannelRouter<?, ?> router = router();
+        if (router != null) {
+            builder.append("router: ")
+                    .append(router)
                     .append(", ");
         }
 

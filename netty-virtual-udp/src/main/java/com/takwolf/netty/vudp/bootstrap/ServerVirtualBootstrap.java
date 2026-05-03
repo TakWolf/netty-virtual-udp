@@ -1,31 +1,33 @@
 package com.takwolf.netty.vudp.bootstrap;
 
-import com.takwolf.netty.vudp.channel.ChildVirtualChannel;
-import com.takwolf.netty.vudp.channel.DefaultChildVirtualChannel;
 import com.takwolf.netty.vudp.channel.DefaultVirtualChannel;
 import com.takwolf.netty.vudp.channel.VirtualChannel;
+import com.takwolf.netty.vudp.router.VirtualChannelRouter;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.socket.DatagramChannel;
-import io.netty.channel.socket.DatagramPacket;
 import io.netty.util.AttributeKey;
 import io.netty.util.internal.ObjectUtil;
 import io.netty.util.internal.StringUtil;
+import io.netty.util.internal.logging.InternalLogger;
+import io.netty.util.internal.logging.InternalLoggerFactory;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class ServerVirtualBootstrap extends AbstractVirtualBootstrap implements Cloneable {
+    private static final InternalLogger logger = InternalLoggerFactory.getInstance(ServerVirtualBootstrap.class);
+
     private final ServerVirtualBootstrapConfig config = new ServerVirtualBootstrapConfig(this);
 
     private final Bootstrap bootstrap;
     private volatile ChannelHandler handler;
+    private volatile VirtualChannelRouter<?, ?> router;
+    private volatile EventLoopGroup childGroup;
     private volatile ChannelHandler childHandler;
     private final Map<ChannelOption<?>, Object> childOptions = new LinkedHashMap<>();
     private final Map<AttributeKey<?>, Object> childAttrs = new ConcurrentHashMap<>();
@@ -38,7 +40,7 @@ public final class ServerVirtualBootstrap extends AbstractVirtualBootstrap imple
                 virtualChannel.pipeline().addLast(handler);
 
                 channel.pipeline()
-                        .addLast(new RouterInboundHandler(virtualChannel, childHandler, childOptions(), childAttrs()))
+                        .addLast(new RouterInboundHandler(virtualChannel, router, childGroup, childHandler, childOptions(), childAttrs()))
                         .addLast(new ForwardOutboundHandler(virtualChannel));
             }
         });
@@ -48,6 +50,8 @@ public final class ServerVirtualBootstrap extends AbstractVirtualBootstrap imple
     private ServerVirtualBootstrap(Bootstrap bootstrap, ServerVirtualBootstrap wrapperBootstrap) {
         this(bootstrap);
         handler = wrapperBootstrap.handler;
+        router = wrapperBootstrap.router;
+        childGroup = wrapperBootstrap.childGroup;
         childHandler = wrapperBootstrap.childHandler;
         synchronized (wrapperBootstrap.childOptions) {
             childOptions.putAll(wrapperBootstrap.childOptions);
@@ -80,7 +84,15 @@ public final class ServerVirtualBootstrap extends AbstractVirtualBootstrap imple
     }
 
     public ServerVirtualBootstrap group(EventLoopGroup group) {
-        bootstrap.group(group);
+        return group(group, group);
+    }
+
+    public ServerVirtualBootstrap group(EventLoopGroup parentGroup, EventLoopGroup childGroup) {
+        bootstrap.group(parentGroup);
+        if (this.childGroup != null) {
+            throw new IllegalStateException("childGroup set already");
+        }
+        this.childGroup = ObjectUtil.checkNotNull(childGroup, "childGroup");
         return this;
     }
 
@@ -96,6 +108,11 @@ public final class ServerVirtualBootstrap extends AbstractVirtualBootstrap imple
 
     public ServerVirtualBootstrap handler(ChannelHandler handler) {
         this.handler = ObjectUtil.checkNotNull(handler, "handler");
+        return this;
+    }
+
+    public ServerVirtualBootstrap router(VirtualChannelRouter<?, ?> router) {
+        this.router = ObjectUtil.checkNotNull(router, "router");
         return this;
     }
 
@@ -157,12 +174,20 @@ public final class ServerVirtualBootstrap extends AbstractVirtualBootstrap imple
         return handler;
     }
 
+    VirtualChannelRouter<?, ?> router() {
+        return router;
+    }
+
     Map<ChannelOption<?>, Object> options() {
         return bootstrap.config().options();
     }
 
     Map<AttributeKey<?>, Object> attrs() {
         return bootstrap.config().attrs();
+    }
+
+    EventLoopGroup childGroup() {
+        return childGroup;
     }
 
     ChannelHandler childHandler() {
@@ -180,6 +205,13 @@ public final class ServerVirtualBootstrap extends AbstractVirtualBootstrap imple
     }
 
     private void internalValidate() {
+        if (router == null) {
+            throw new IllegalStateException("router not set");
+        }
+        if (childGroup == null) {
+            logger.warn("childGroup is not set. Using parentGroup instead.");
+            childGroup = config.group();
+        }
         if (childHandler == null) {
             throw new IllegalStateException("childHandler not set");
         }
@@ -231,76 +263,5 @@ public final class ServerVirtualBootstrap extends AbstractVirtualBootstrap imple
     @Override
     public String toString() {
         return StringUtil.simpleClassName(this) + '(' + config() + ')';
-    }
-
-    private static final class RouterInboundHandler extends ForwardInboundHandler {
-        private final ChannelHandler childHandler;
-        private final Map<ChannelOption<?>, Object> childOptions;
-        private final Map<AttributeKey<?>, Object> childAttrs;
-
-        private final Map<InetSocketAddress, ChildVirtualChannel> router = new ConcurrentHashMap<>();
-        private final Set<ChildVirtualChannel> readTouchedChannels = ConcurrentHashMap.newKeySet();
-
-        RouterInboundHandler(
-                VirtualChannel virtualChannel,
-                ChannelHandler childHandler,
-                Map<ChannelOption<?>, Object> childOptions,
-                Map<AttributeKey<?>, Object> childAttrs
-        ) {
-            super(virtualChannel);
-            this.childHandler = childHandler;
-            this.childOptions = childOptions;
-            this.childAttrs = childAttrs;
-        }
-
-        @Override
-        public void channelInactive(ChannelHandlerContext context) {
-            super.channelInactive(context);
-            for (ChildVirtualChannel childChannel : router.values()) {
-                childChannel.unsafe().close(childChannel.voidPromise());
-            }
-        }
-
-        @SuppressWarnings("unchecked")
-        @Override
-        protected void channelRead0(ChannelHandlerContext context, DatagramPacket packet) {
-            ChildVirtualChannel childChannel = router.computeIfAbsent(packet.sender(), remoteAddress -> {
-                DefaultChildVirtualChannel channel = new DefaultChildVirtualChannel(virtualChannel(), remoteAddress);
-                channel.pipeline().addLast(childHandler);
-                for (Map.Entry<ChannelOption<?>, Object> entry : childOptions.entrySet()) {
-                    channel.config().setOption((ChannelOption<Object>) entry.getKey(), entry.getValue());
-                }
-                for (Map.Entry<AttributeKey<?>, Object> entry : childAttrs.entrySet()) {
-                    channel.attr((AttributeKey<Object>) entry.getKey()).set(entry.getValue());
-                }
-                channel.closeFuture().addListener((ChannelFutureListener) future -> router.remove(remoteAddress));
-
-                virtualChannel().pipeline()
-                        .fireChannelRead(channel)
-                        .fireChannelReadComplete();
-
-                channel.unsafe().register(channel.eventLoop(), channel.voidPromise());
-                channel.pipeline().fireChannelActive();
-                return channel;
-            });
-            childChannel.pipeline().fireChannelRead(packet.content().retain());
-            readTouchedChannels.add(childChannel);
-        }
-
-        @Override
-        public void channelReadComplete(ChannelHandlerContext context) {
-            for (ChildVirtualChannel childChannel : readTouchedChannels) {
-                childChannel.pipeline().fireChannelReadComplete();
-            }
-            readTouchedChannels.clear();
-        }
-
-        @Override
-        public void channelWritabilityChanged(ChannelHandlerContext context) {
-            super.channelWritabilityChanged(context);
-            for (ChildVirtualChannel childChannel : router.values()) {
-                childChannel.pipeline().fireChannelWritabilityChanged();
-            }
-        }
     }
 }

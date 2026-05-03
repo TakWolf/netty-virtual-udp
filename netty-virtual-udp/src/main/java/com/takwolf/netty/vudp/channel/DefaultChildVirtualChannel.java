@@ -18,16 +18,18 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
     private final ChannelId id = DefaultChannelId.newInstance();
 
     private final VirtualChannel parent;
-    private final InetSocketAddress remoteAddress;
+    private final Object routeKey;
     private final AttributeMap attrs = new DefaultAttributeMap();
     private final Unsafe unsafe = new DefaultUnsafe(this);
     private final CloseFuture closeFuture = new CloseFuture(this);
     private final ChannelPipeline pipeline = createPipeline(this);
 
-    private volatile boolean registered;
+    private volatile InetSocketAddress remoteAddress;
+    private volatile EventLoop eventLoop;
 
-    public DefaultChildVirtualChannel(VirtualChannel parent, InetSocketAddress remoteAddress) {
+    public DefaultChildVirtualChannel(VirtualChannel parent, Object routeKey, InetSocketAddress remoteAddress) {
         this.parent = parent;
+        this.routeKey = routeKey;
         this.remoteAddress = remoteAddress;
     }
 
@@ -38,12 +40,17 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
     @Override
     public EventLoop eventLoop() {
-        return parent.eventLoop();
+        return eventLoop;
     }
 
     @Override
     public VirtualChannel parent() {
         return parent;
+    }
+
+    @Override
+    public Object routeKey() {
+        return routeKey;
     }
 
     @Override
@@ -58,12 +65,12 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
     @Override
     public boolean isRegistered() {
-        return registered;
+        return eventLoop != null;
     }
 
     @Override
     public boolean isActive() {
-        return isOpen();
+        return isOpen() && isRegistered();
     }
 
     @Override
@@ -79,6 +86,11 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
     @Override
     public InetSocketAddress remoteAddress() {
         return remoteAddress;
+    }
+
+    @Override
+    public void remoteAddress(InetSocketAddress remoteAddress) {
+        this.remoteAddress = remoteAddress;
     }
 
     @Override
@@ -111,12 +123,14 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
         return pipeline;
     }
 
-    void doRegister(ChannelPromise promise) {
-        if (!registered) {
-            registered = true;
+    void doRegister(EventLoop eventLoop, ChannelPromise promise) {
+        if (this.eventLoop == null) {
+            this.eventLoop = eventLoop;
             pipeline.fireChannelRegistered();
+            promise.setSuccess();
+        } else {
+            promise.setFailure(new IllegalStateException("eventLoop already registered"));
         }
-        promise.setSuccess();
     }
 
     void doClose(ChannelPromise promise) {
@@ -124,16 +138,16 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
             closeFuture.setClosed();
             pipeline.fireChannelInactive();
         }
-        if (registered) {
-            registered = false;
+        if (eventLoop != null) {
+            eventLoop = null;
             pipeline.fireChannelUnregistered();
         }
         promise.setSuccess();
     }
 
     void doDeregister(ChannelPromise promise) {
-        if (registered) {
-            registered = false;
+        if (eventLoop != null) {
+            eventLoop = null;
             pipeline.fireChannelUnregistered();
         }
         promise.setSuccess();
@@ -298,6 +312,18 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
             return channel.parent().wrappedChannel().unsafe();
         }
 
+        private EventLoop wrappedEventLoop() {
+            return channel.parent().wrappedChannel().eventLoop();
+        }
+
+        private void executeInEventLoop(EventLoop eventLoop, Runnable runnable) {
+            if (eventLoop.inEventLoop()) {
+                runnable.run();
+            } else {
+                eventLoop.execute(runnable);
+            }
+        }
+
         @Override
         public RecvByteBufAllocator.ExtendedHandle recvBufAllocHandle() {
             throw new UnsupportedOperationException();
@@ -315,7 +341,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
         @Override
         public void register(EventLoop eventLoop, ChannelPromise promise) {
-            channel.doRegister(promise);
+            executeInEventLoop(eventLoop, () -> channel.doRegister(eventLoop, promise));
         }
 
         @Override
@@ -335,7 +361,12 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
         @Override
         public void close(ChannelPromise promise) {
-            channel.doClose(promise);
+            EventLoop eventLoop = channel.eventLoop();
+            if (eventLoop == null) {
+                promise.setSuccess();
+            } else {
+                executeInEventLoop(eventLoop, () -> channel.doClose(promise));
+            }
         }
 
         @Override
@@ -345,7 +376,12 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
         @Override
         public void deregister(ChannelPromise promise) {
-            channel.doDeregister(promise);
+            EventLoop eventLoop = channel.eventLoop();
+            if (eventLoop == null) {
+                promise.setSuccess();
+            } else {
+                executeInEventLoop(eventLoop, () -> channel.doDeregister(promise));
+            }
         }
 
         @Override
@@ -355,7 +391,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
         public void write(Object message, ChannelPromise promise) {
             if (message instanceof ByteBuf) {
                 DatagramPacket packet = new DatagramPacket((ByteBuf) message, remoteAddress());
-                wrappedUnsafe().write(packet, promise);
+                executeInEventLoop(wrappedEventLoop(), () -> wrappedUnsafe().write(packet, promise));
             } else {
                 promise.setFailure(new IllegalStateException("unsupported message type"));
             }
@@ -363,7 +399,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
         @Override
         public void flush() {
-            wrappedUnsafe().flush();
+            executeInEventLoop(wrappedEventLoop(), () -> wrappedUnsafe().flush());
         }
 
         @Override
