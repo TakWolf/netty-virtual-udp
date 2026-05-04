@@ -36,7 +36,7 @@ public final class ServerVirtualBootstrapConfig {
         return bootstrap.handler();
     }
 
-    public VirtualChannelRouter<?, ?> router() {
+    public VirtualChannelRouter<?, ?, ?> router() {
         return bootstrap.router();
     }
 
@@ -98,7 +98,7 @@ public final class ServerVirtualBootstrapConfig {
                     .append(", ");
         }
 
-        VirtualChannelRouter<?, ?> router = router();
+        VirtualChannelRouter<?, ?, ?> router = router();
         if (router != null) {
             builder.append("router: ")
                     .append(router)

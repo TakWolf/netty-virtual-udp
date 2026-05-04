@@ -26,7 +26,7 @@ public final class ServerVirtualBootstrap extends AbstractVirtualBootstrap imple
 
     private final Bootstrap bootstrap;
     private volatile ChannelHandler handler;
-    private volatile VirtualChannelRouter<?, ?> router;
+    private volatile VirtualChannelRouter<?, ?, ?> router;
     private volatile EventLoopGroup childGroup;
     private volatile ChannelHandler childHandler;
     private final Map<ChannelOption<?>, Object> childOptions = new LinkedHashMap<>();
@@ -40,7 +40,7 @@ public final class ServerVirtualBootstrap extends AbstractVirtualBootstrap imple
                 virtualChannel.pipeline().addLast(handler);
 
                 channel.pipeline()
-                        .addLast(new RouterInboundHandler(virtualChannel, router, childGroup, childHandler, childOptions(), childAttrs()))
+                        .addLast(new RouterInboundHandler<>(virtualChannel, router, childGroup, childHandler, childOptions(), childAttrs()))
                         .addLast(new ForwardOutboundHandler(virtualChannel));
             }
         });
@@ -111,7 +111,7 @@ public final class ServerVirtualBootstrap extends AbstractVirtualBootstrap imple
         return this;
     }
 
-    public ServerVirtualBootstrap router(VirtualChannelRouter<?, ?> router) {
+    public ServerVirtualBootstrap router(VirtualChannelRouter<?, ?, ?> router) {
         this.router = ObjectUtil.checkNotNull(router, "router");
         return this;
     }
@@ -174,7 +174,7 @@ public final class ServerVirtualBootstrap extends AbstractVirtualBootstrap imple
         return handler;
     }
 
-    VirtualChannelRouter<?, ?> router() {
+    VirtualChannelRouter<?, ?, ?> router() {
         return router;
     }
 
