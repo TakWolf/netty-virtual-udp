@@ -4,7 +4,6 @@ import com.takwolf.demo.game.common.GameMessageDecoder;
 import com.takwolf.demo.game.common.GameMessageEncoder;
 import com.takwolf.netty.vudp.bootstrap.ServerVirtualBootstrap;
 import com.takwolf.netty.vudp.channel.ChildVirtualChannel;
-import com.takwolf.netty.vudp.router.RemoteAddressChannelRouter;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
@@ -27,12 +26,14 @@ public class ServerMain {
                     .group(bossGroup, workerGroup)
                     .channel(NioDatagramChannel.class)
                     .handler(new LoggingHandler("UDP Parent", LogLevel.INFO, ByteBufFormat.SIMPLE))
-                    .router(RemoteAddressChannelRouter.INSTANCE)
+                    .router(new GameServerChannelRouter())
                     .childHandler(new ChannelInitializer<ChildVirtualChannel>() {
                         @Override
                         protected void initChannel(ChildVirtualChannel channel) {
                             channel.pipeline()
                                     .addLast(new LoggingHandler("UDP Child", LogLevel.INFO, ByteBufFormat.SIMPLE))
+                                    .addLast(new GameServerRouteDecoder())
+                                    .addLast(new GameServerCryptoEncoder())
                                     .addLast(new GameMessageDecoder())
                                     .addLast(new GameMessageEncoder())
                                     .addLast(new GameServerHandler());

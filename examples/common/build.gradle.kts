@@ -15,6 +15,7 @@ dependencies {
     api(project(":netty-virtual-udp"))
 
     api("org.apache.commons:commons-lang3:3.20.0")
+    api("commons-codec:commons-codec:1.21.0")
 
     api("org.slf4j:slf4j-api:2.0.17")
     implementation("ch.qos.logback:logback-classic:1.5.32")

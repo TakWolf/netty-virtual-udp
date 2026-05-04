@@ -1,7 +1,9 @@
 package com.takwolf.demo.game.client;
 
+import com.takwolf.demo.game.common.GameCrypto;
 import com.takwolf.demo.game.common.GameMessageDecoder;
 import com.takwolf.demo.game.common.GameMessageEncoder;
+import com.takwolf.demo.game.common.UserService;
 import com.takwolf.netty.vudp.bootstrap.VirtualBootstrap;
 import com.takwolf.netty.vudp.channel.VirtualChannel;
 import io.netty.channel.Channel;
@@ -24,6 +26,10 @@ import java.util.Objects;
 @NullMarked
 public class ClientMain {
     public static void main(String[] args) throws InterruptedException, IOException {
+        UserService userService = new UserService();
+        UserService.LoginInfo loginInfo = userService.getLoginInfo(1).orElseThrow();
+        GameCrypto gameCrypto = GameCrypto.fromLoginInfo(loginInfo, 0);
+
         EventLoopGroup ioGroup = new MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory());
 
         try {
@@ -35,6 +41,8 @@ public class ClientMain {
                         protected void initChannel(VirtualChannel channel) {
                             channel.pipeline()
                                     .addLast(new LoggingHandler("UDP", LogLevel.INFO, ByteBufFormat.SIMPLE))
+                                    .addLast(new GameClientCryptoDecoder(gameCrypto.getConversationId(), gameCrypto.getServerKey()))
+                                    .addLast(new GameClientCryptoEncoder(gameCrypto.getConversationId(), gameCrypto.getClientKey(), gameCrypto.getSequenceSeed()))
                                     .addLast(new GameMessageDecoder())
                                     .addLast(new GameMessageEncoder())
                                     .addLast(new GameClientHandler());
