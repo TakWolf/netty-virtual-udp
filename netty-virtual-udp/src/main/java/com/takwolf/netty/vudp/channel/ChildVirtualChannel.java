@@ -8,8 +8,6 @@ public interface ChildVirtualChannel extends Channel {
     @Override
     VirtualChannel parent();
 
-    Object routeKey();
-
     @Override
     InetSocketAddress localAddress();
 

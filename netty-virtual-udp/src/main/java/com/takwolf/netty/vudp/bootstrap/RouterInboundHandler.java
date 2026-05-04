@@ -105,7 +105,7 @@ final class RouterInboundHandler extends ForwardInboundHandler {
 
     private void channelReadOnMessage(ChannelHandlerContext context, EventLoop eventLoop, InetSocketAddress remoteAddress, Object key, Object message) {
         ChildVirtualChannel childChannel = registry.computeIfAbsent(key, routeKey -> {
-            DefaultChildVirtualChannel channel = new DefaultChildVirtualChannel(virtualChannel(), routeKey, remoteAddress);
+            DefaultChildVirtualChannel channel = new DefaultChildVirtualChannel(virtualChannel(), remoteAddress);
             channel.pipeline().addLast(childHandler);
             for (Map.Entry<ChannelOption<?>, Object> entry : childOptions.entrySet()) {
                 //noinspection unchecked

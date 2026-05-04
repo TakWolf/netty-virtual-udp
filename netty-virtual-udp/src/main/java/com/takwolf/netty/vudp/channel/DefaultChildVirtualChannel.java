@@ -18,7 +18,6 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
     private final ChannelId id = DefaultChannelId.newInstance();
 
     private final VirtualChannel parent;
-    private final Object routeKey;
     private final AttributeMap attrs = new DefaultAttributeMap();
     private final Unsafe unsafe = new DefaultUnsafe(this);
     private final CloseFuture closeFuture = new CloseFuture(this);
@@ -27,9 +26,8 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
     private volatile InetSocketAddress remoteAddress;
     private volatile EventLoop eventLoop;
 
-    public DefaultChildVirtualChannel(VirtualChannel parent, Object routeKey, InetSocketAddress remoteAddress) {
+    public DefaultChildVirtualChannel(VirtualChannel parent, InetSocketAddress remoteAddress) {
         this.parent = parent;
-        this.routeKey = routeKey;
         this.remoteAddress = remoteAddress;
     }
 
@@ -46,11 +44,6 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
     @Override
     public VirtualChannel parent() {
         return parent;
-    }
-
-    @Override
-    public Object routeKey() {
-        return routeKey;
     }
 
     @Override
