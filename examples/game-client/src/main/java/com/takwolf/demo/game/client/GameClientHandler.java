@@ -3,8 +3,10 @@ package com.takwolf.demo.game.client;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NullMarked;
 
 @Slf4j
+@NullMarked
 public class GameClientHandler extends SimpleChannelInboundHandler<String> {
     @Override
     protected void channelRead0(ChannelHandlerContext context, String message) {

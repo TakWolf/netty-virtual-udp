@@ -6,8 +6,10 @@ import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NullMarked;
 
 @Slf4j
+@NullMarked
 public class GameServerHandler extends SimpleChannelInboundHandler<String> {
     private static final ChannelGroup allChannels = new DefaultChannelGroup("all", GlobalEventExecutor.INSTANCE);
 
