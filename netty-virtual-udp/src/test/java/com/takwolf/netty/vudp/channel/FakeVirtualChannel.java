@@ -1,31 +1,22 @@
 package com.takwolf.netty.vudp.channel;
 
 import io.netty.channel.*;
+import io.netty.channel.socket.DatagramChannel;
+import io.netty.channel.socket.DatagramChannelConfig;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 
-public class FakeVirtualChannel extends AbstractVirtualChannel {
+public class FakeVirtualChannel extends AbstractVirtualChannel implements VirtualChannel, ChildVirtualChannel {
     private final ChannelId id = DefaultChannelId.newInstance();
     private final Unsafe unsafe = new FakeUnsafe();
     private final ChannelPipeline pipeline = createPipeline(this);
 
-    private volatile SocketAddress localAddress;
-    private volatile SocketAddress remoteAddress;
+    private volatile InetSocketAddress localAddress;
+    private volatile InetSocketAddress remoteAddress;
     private volatile boolean active;
-
-    public void setLocalAddress(SocketAddress localAddress) {
-        this.localAddress = localAddress;
-    }
-
-    public void setRemoteAddress(SocketAddress remoteAddress) {
-        this.remoteAddress = remoteAddress;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
 
     @Override
     public ChannelId id() {
@@ -38,12 +29,17 @@ public class FakeVirtualChannel extends AbstractVirtualChannel {
     }
 
     @Override
-    public Channel parent() {
+    public VirtualChannel parent() {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public ChannelConfig config() {
+    public DatagramChannel wrappedChannel() {
+        return null;
+    }
+
+    @Override
+    public DatagramChannelConfig config() {
         throw new UnsupportedOperationException();
     }
 
@@ -62,19 +58,32 @@ public class FakeVirtualChannel extends AbstractVirtualChannel {
         return active;
     }
 
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
     @Override
     public ChannelMetadata metadata() {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public SocketAddress localAddress() {
+    public InetSocketAddress localAddress() {
         return localAddress;
     }
 
+    public void localAddress(InetSocketAddress localAddress) {
+        this.localAddress = localAddress;
+    }
+
     @Override
-    public SocketAddress remoteAddress() {
+    public InetSocketAddress remoteAddress() {
         return remoteAddress;
+    }
+
+    @Override
+    public void remoteAddress(InetSocketAddress remoteAddress) {
+        this.remoteAddress = remoteAddress;
     }
 
     @Override
