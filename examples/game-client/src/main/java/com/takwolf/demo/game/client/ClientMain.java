@@ -15,7 +15,6 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.logging.ByteBufFormat;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import org.jspecify.annotations.NullMarked;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -23,7 +22,6 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
-@NullMarked
 public class ClientMain {
     public static void main(String[] args) throws InterruptedException, IOException {
         UserService userService = new UserService();

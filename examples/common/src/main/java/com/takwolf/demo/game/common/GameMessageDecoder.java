@@ -3,12 +3,10 @@ package com.takwolf.demo.game.common;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
-import org.jspecify.annotations.NullMarked;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-@NullMarked
 public class GameMessageDecoder extends ByteToMessageDecoder {
     @Override
     protected void decode(ChannelHandlerContext context, ByteBuf in, List<Object> out) {

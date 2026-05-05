@@ -7,13 +7,11 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
-import org.jspecify.annotations.NullMarked;
 
 import javax.crypto.spec.GCMParameterSpec;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 
-@NullMarked
 public class GameServerCryptoEncoder extends MessageToByteEncoder<ByteBuf> {
     @Override
     protected void encode(ChannelHandlerContext context, ByteBuf in, ByteBuf out) throws GeneralSecurityException {

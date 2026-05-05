@@ -5,7 +5,6 @@ import com.takwolf.demo.game.common.GameDefine;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
-import org.jspecify.annotations.NullMarked;
 
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -13,7 +12,6 @@ import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.util.concurrent.atomic.AtomicLong;
 
-@NullMarked
 public class GameClientCryptoEncoder extends MessageToByteEncoder<ByteBuf> {
     private final int conversationId;
     private final SecretKeySpec key;

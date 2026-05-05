@@ -4,14 +4,12 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.commons.codec.binary.Hex;
-import org.jspecify.annotations.NullMarked;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Getter
 @RequiredArgsConstructor
-@NullMarked
 public final class GameCrypto {
     @SneakyThrows
     public static GameCrypto fromLoginInfo(UserService.LoginInfo loginInfo, long sequenceInitialValue) {

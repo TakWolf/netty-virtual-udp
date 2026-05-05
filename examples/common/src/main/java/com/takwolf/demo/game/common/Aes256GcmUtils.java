@@ -1,6 +1,5 @@
 package com.takwolf.demo.game.common;
 
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import javax.crypto.Cipher;
@@ -23,7 +22,6 @@ import java.security.GeneralSecurityException;
  * <p>同一密钥下 Nonce 绝不能重用，每次加密都使用全新的随机值。
  * <p>如果使用 AAD（关联认证数据），加密和解密时必须传入完全相同的 AAD 值，否则解密会失败。
  */
-@NullMarked
 public final class Aes256GcmUtils {
     private Aes256GcmUtils() {}
 

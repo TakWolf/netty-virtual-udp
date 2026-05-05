@@ -13,9 +13,7 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.logging.ByteBufFormat;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import org.jspecify.annotations.NullMarked;
 
-@NullMarked
 public class ServerMain {
     public static void main(String[] args) throws InterruptedException {
         EventLoopGroup bossGroup = new MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory());

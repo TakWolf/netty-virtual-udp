@@ -3,11 +3,9 @@ package com.takwolf.demo.game.common;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
-import org.jspecify.annotations.NullMarked;
 
 import java.nio.charset.StandardCharsets;
 
-@NullMarked
 public class GameMessageEncoder extends MessageToByteEncoder<String> {
     @Override
     protected void encode(ChannelHandlerContext context, String message, ByteBuf out) {

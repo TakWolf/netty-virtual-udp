@@ -11,7 +11,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.socket.DatagramPacket;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.NullMarked;
 
 import javax.crypto.spec.GCMParameterSpec;
 import java.nio.ByteBuffer;
@@ -19,7 +18,6 @@ import java.security.GeneralSecurityException;
 import java.util.Optional;
 
 @Slf4j
-@NullMarked
 public class GameServerChannelRouter implements VirtualChannelRouter<Integer, GameCrypto, DatagramPacket> {
     private final UserService userService = new UserService();
 

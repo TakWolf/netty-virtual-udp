@@ -7,7 +7,6 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.NullMarked;
 
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -16,7 +15,6 @@ import java.security.GeneralSecurityException;
 import java.util.List;
 
 @Slf4j
-@NullMarked
 public class GameClientCryptoDecoder extends MessageToMessageDecoder<ByteBuf> {
     private final int conversationId;
     private final SecretKeySpec key;

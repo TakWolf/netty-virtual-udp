@@ -2,7 +2,6 @@ package com.takwolf.demo.game.common;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.NullMarked;
 
 import java.util.Map;
 import java.util.Optional;
@@ -11,7 +10,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Getter
-@NullMarked
 public class UserService {
     private final Map<Integer, LoginInfo> loginInfos = Stream.of(
             new LoginInfo(1, "4b497153436a347044684f6754325671646f6b43767676684d5741736b325174", "42735935584f643733314f6c6d66737276716e6f765664336f4d636b32704d39"),
