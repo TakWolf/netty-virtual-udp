@@ -125,6 +125,8 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
 
             DefaultChildVirtualChannel channel = new DefaultChildVirtualChannel(virtualChannel(), packet.sender());
             try {
+                router.attachContext(key, routeContext, channel);
+
                 channel.pipeline().addLast(childHandler);
                 for (Map.Entry<ChannelOption<?>, Object> entry : childOptions.entrySet()) {
                     // noinspection unchecked
@@ -147,12 +149,6 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
                 channel.unsafe().close(channel.voidPromise());
                 virtualChannel().pipeline().fireExceptionCaught(e);
                 return null;
-            }
-
-            try {
-                router.attachContext(key, routeContext, channel, true);
-            } catch (Exception e) {
-                channel.pipeline().fireExceptionCaught(e);
             }
 
             EventExecutorUtil.executeInEventLoop(context.executor(), () -> {
@@ -188,13 +184,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
         RouteContext routeContext;
         Out message;
         try {
-            RouteResult<RouteContext> routeContextResult = router.existingContext(key, childChannel);
-            if (!routeContextResult.ok()) {
-                finishReadTask(context, packet);
-                return;
-            }
-            routeContext = routeContextResult.get();
-
+            routeContext = router.existingContext(key, childChannel);
             RouteResult<Out> messageResult = router.routeMessage(key, routeContext, packet);
             if (!messageResult.ok()) {
                 finishReadTask(context, packet);
@@ -205,12 +195,6 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
             finishReadTask(context, packet);
             virtualChannel().pipeline().fireExceptionCaught(e);
             return;
-        }
-
-        try {
-            router.attachContext(key, routeContext, childChannel, false);
-        } catch (Exception e) {
-            childChannel.pipeline().fireExceptionCaught(e);
         }
 
         EventExecutorUtil.executeInEventLoop(context.executor(), () -> {

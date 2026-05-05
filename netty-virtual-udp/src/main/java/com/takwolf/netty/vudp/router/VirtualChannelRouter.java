@@ -12,11 +12,11 @@ public interface VirtualChannelRouter<Key, RouteContext, Out> {
         return RouteResult.of();
     }
 
-    default RouteResult<RouteContext> existingContext(Key key, ChildVirtualChannel channel) throws Exception {
-        return RouteResult.of();
+    default RouteContext existingContext(Key key, ChildVirtualChannel channel) throws Exception {
+        return null;
     }
 
-    RouteResult<Out> routeMessage(Key key, RouteContext context, DatagramPacket packet) throws Exception;
+    default void attachContext(Key key, RouteContext context, ChildVirtualChannel channel) throws Exception {}
 
-    default void attachContext(Key key, RouteContext context, ChildVirtualChannel channel, boolean firstTime) throws Exception {}
+    RouteResult<Out> routeMessage(Key key, RouteContext context, DatagramPacket packet) throws Exception;
 }

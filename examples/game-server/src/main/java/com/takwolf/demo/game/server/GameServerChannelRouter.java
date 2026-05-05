@@ -46,9 +46,13 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
     }
 
     @Override
-    public RouteResult<GameCrypto> existingContext(Integer conversationId, ChildVirtualChannel channel) {
-        GameCrypto gameCrypto = channel.attr(GameServerDefine.ATTR_GAME_CRYPTO).get();
-        return RouteResult.of(gameCrypto);
+    public GameCrypto existingContext(Integer conversationId, ChildVirtualChannel channel) {
+        return channel.attr(GameServerDefine.ATTR_GAME_CRYPTO).get();
+    }
+
+    @Override
+    public void attachContext(Integer conversationId, GameCrypto gameCrypto, ChildVirtualChannel channel) {
+        channel.attr(GameServerDefine.ATTR_GAME_CRYPTO).set(gameCrypto);
     }
 
     @Override
@@ -78,12 +82,5 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
         }
 
         return RouteResult.of(packet.replace(Unpooled.wrappedBuffer(plaintext)));
-    }
-
-    @Override
-    public void attachContext(Integer conversationId, GameCrypto gameCrypto, ChildVirtualChannel channel, boolean firstTime) {
-        if (firstTime) {
-            channel.attr(GameServerDefine.ATTR_GAME_CRYPTO).set(gameCrypto);
-        }
     }
 }
