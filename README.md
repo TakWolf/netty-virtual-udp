@@ -9,7 +9,7 @@
 
 ```kotlin
 implementation("io.netty:netty-all:4.2.12.Final")
-implementation("io.github.takwolf.netty:netty-virtual-udp:0.0.1")
+implementation("io.github.takwolf.netty:netty-virtual-udp:0.0.2")
 ```
 
 ## License

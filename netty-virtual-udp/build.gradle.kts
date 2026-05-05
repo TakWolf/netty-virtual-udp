@@ -29,7 +29,7 @@ tasks.withType<Test> {
 }
 
 mavenPublishing {
-    coordinates("io.github.takwolf.netty", "netty-virtual-udp", "0.0.1")
+    coordinates("io.github.takwolf.netty", "netty-virtual-udp", "0.0.2")
 
     pom {
         name.set("Netty Virtual UDP")
