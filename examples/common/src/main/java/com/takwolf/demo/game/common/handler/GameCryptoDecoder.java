@@ -42,6 +42,10 @@ public class GameCryptoDecoder extends MessageToMessageDecoder<ByteBuf> {
         }
 
         long sequence = in.readLong();
+        if (sequence < 0) {
+            log.warn("Sequence overflow, ignore");
+            return;
+        }
 
         ByteBuffer nonceBuffer = ByteBuffer.allocate(12);
         nonceBuffer.put(noncePrefix);

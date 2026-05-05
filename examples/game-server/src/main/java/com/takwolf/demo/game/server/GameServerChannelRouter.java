@@ -60,7 +60,12 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
     @Override
     public RouteResult<RouteMessage> routeMessage(Integer conversationId, GameCrypto gameCrypto, DatagramPacket packet) {
         ByteBuf in = packet.content();
+
         long sequence = in.readLong();
+        if (sequence < 0) {
+            log.warn("Sequence overflow, ignore");
+            return RouteResult.none();
+        }
 
         ByteBuffer nonceBuffer = ByteBuffer.allocate(12);
         nonceBuffer.put(GameCrypto.NONCE_PREFIX_CLIENT);
