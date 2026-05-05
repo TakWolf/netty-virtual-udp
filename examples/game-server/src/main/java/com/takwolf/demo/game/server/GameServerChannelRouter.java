@@ -7,19 +7,20 @@ import com.takwolf.netty.vudp.channel.ChildVirtualChannel;
 import com.takwolf.netty.vudp.router.RouteResult;
 import com.takwolf.netty.vudp.router.VirtualChannelRouter;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.socket.DatagramPacket;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.crypto.spec.GCMParameterSpec;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.util.Optional;
 
 @Slf4j
 @RequiredArgsConstructor
-public class GameServerChannelRouter implements VirtualChannelRouter<Integer, GameCrypto, DatagramPacket> {
+public class GameServerChannelRouter implements VirtualChannelRouter<Integer, GameCrypto, GameServerChannelRouter.RouteMessage> {
     private final UserService userService;
 
     @Override
@@ -57,7 +58,7 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
     }
 
     @Override
-    public RouteResult<DatagramPacket> routeMessage(Integer conversationId, GameCrypto gameCrypto, DatagramPacket packet) {
+    public RouteResult<RouteMessage> routeMessage(Integer conversationId, GameCrypto gameCrypto, DatagramPacket packet) {
         ByteBuf in = packet.content();
         long sequence = in.readLong();
 
@@ -82,6 +83,14 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
             return RouteResult.none();
         }
 
-        return RouteResult.of(packet.replace(Unpooled.wrappedBuffer(plaintext)));
+        return RouteResult.of(new RouteMessage(packet.sender(), sequence, plaintext));
+    }
+
+    @Getter
+    @RequiredArgsConstructor
+    public static final class RouteMessage {
+        private final InetSocketAddress remoteAddress;
+        private final long sequence;
+        private final byte[] data;
     }
 }
