@@ -5,15 +5,13 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.socket.DatagramPacket;
-import io.netty.util.Attribute;
-import io.netty.util.AttributeKey;
-import io.netty.util.AttributeMap;
-import io.netty.util.DefaultAttributeMap;
+import io.netty.util.*;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 
 public final class DefaultChildVirtualChannel extends AbstractVirtualChannel implements ChildVirtualChannel {
     private final ChannelId id = DefaultChannelId.newInstance();
@@ -378,7 +376,16 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
             if (message instanceof ByteBuf) {
                 DatagramPacket packet = new DatagramPacket((ByteBuf) message, remoteAddress());
                 EventExecutorUtil.executeInEventLoop(wrappedEventLoop(), () -> wrappedUnsafe().write(packet, promise));
+            } else if (message instanceof DatagramPacket) {
+                DatagramPacket packet = (DatagramPacket) message;
+                if (Objects.equals(packet.recipient(), remoteAddress())) {
+                    EventExecutorUtil.executeInEventLoop(wrappedEventLoop(), () -> wrappedUnsafe().write(packet, promise));
+                } else {
+                    ReferenceCountUtil.release(packet);
+                    promise.setFailure(new IllegalStateException("cannot send message to non-target remoteAddress"));
+                }
             } else {
+                ReferenceCountUtil.release(message);
                 promise.setFailure(new IllegalStateException("unsupported message type"));
             }
         }
