@@ -1,7 +1,6 @@
-package com.takwolf.demo.game.client;
+package com.takwolf.demo.game.common.handler;
 
-import com.takwolf.demo.game.common.Aes256GcmUtils;
-import com.takwolf.demo.game.common.GameDefine;
+import com.takwolf.demo.game.common.util.Aes256GcmUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
@@ -12,17 +11,22 @@ import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class GameClientCryptoEncoder extends MessageToByteEncoder<ByteBuf> {
+public class GameCryptoEncoder extends MessageToByteEncoder<ByteBuf> {
     private final int conversationId;
     private final SecretKeySpec key;
+    private final byte[] noncePrefix;
     private final AtomicLong sequenceSeed;
 
-    public GameClientCryptoEncoder(int conversationId, SecretKeySpec key, AtomicLong sequenceSeed) {
+    public GameCryptoEncoder(int conversationId, SecretKeySpec key, byte[] noncePrefix, AtomicLong sequenceSeed) {
+        if (noncePrefix.length != 4) {
+            throw new IllegalArgumentException("noncePrefix must be 4 bytes");
+        }
         if (sequenceSeed.get() < 0) {
             throw new IllegalArgumentException("sequenceSeed must start from positive");
         }
         this.conversationId = conversationId;
         this.key = key;
+        this.noncePrefix = noncePrefix;
         this.sequenceSeed = sequenceSeed;
     }
 
@@ -34,7 +38,7 @@ public class GameClientCryptoEncoder extends MessageToByteEncoder<ByteBuf> {
         }
 
         ByteBuffer nonceBuffer = ByteBuffer.allocate(12);
-        nonceBuffer.put(GameDefine.NONCE_CLIENT_PREFIX);
+        nonceBuffer.put(noncePrefix);
         nonceBuffer.putLong(sequence);
         GCMParameterSpec nonce = Aes256GcmUtils.createNonce(nonceBuffer.array());
 

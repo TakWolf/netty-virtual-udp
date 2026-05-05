@@ -1,7 +1,6 @@
-package com.takwolf.demo.game.client;
+package com.takwolf.demo.game.common.handler;
 
-import com.takwolf.demo.game.common.Aes256GcmUtils;
-import com.takwolf.demo.game.common.GameDefine;
+import com.takwolf.demo.game.common.util.Aes256GcmUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -15,13 +14,18 @@ import java.security.GeneralSecurityException;
 import java.util.List;
 
 @Slf4j
-public class GameClientCryptoDecoder extends MessageToMessageDecoder<ByteBuf> {
+public class GameCryptoDecoder extends MessageToMessageDecoder<ByteBuf> {
     private final int conversationId;
     private final SecretKeySpec key;
+    private final byte[] noncePrefix;
 
-    public GameClientCryptoDecoder(int conversationId, SecretKeySpec key) {
+    public GameCryptoDecoder(int conversationId, SecretKeySpec key, byte[] noncePrefix) {
+        if (noncePrefix.length != 4) {
+            throw new IllegalArgumentException("noncePrefix must be 4 bytes");
+        }
         this.conversationId = conversationId;
         this.key = key;
+        this.noncePrefix = noncePrefix;
     }
 
     @Override
@@ -40,7 +44,7 @@ public class GameClientCryptoDecoder extends MessageToMessageDecoder<ByteBuf> {
         long sequence = in.readLong();
 
         ByteBuffer nonceBuffer = ByteBuffer.allocate(12);
-        nonceBuffer.put(GameDefine.NONCE_SERVER_PREFIX);
+        nonceBuffer.put(noncePrefix);
         nonceBuffer.putLong(sequence);
         GCMParameterSpec nonce = Aes256GcmUtils.createNonce(nonceBuffer.array());
 

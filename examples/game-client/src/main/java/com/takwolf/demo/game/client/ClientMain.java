@@ -1,9 +1,11 @@
 package com.takwolf.demo.game.client;
 
-import com.takwolf.demo.game.common.GameCrypto;
-import com.takwolf.demo.game.common.GameMessageDecoder;
-import com.takwolf.demo.game.common.GameMessageEncoder;
-import com.takwolf.demo.game.common.UserService;
+import com.takwolf.demo.game.common.handler.GameCryptoDecoder;
+import com.takwolf.demo.game.common.handler.GameCryptoEncoder;
+import com.takwolf.demo.game.common.handler.GameMessageDecoder;
+import com.takwolf.demo.game.common.handler.GameMessageEncoder;
+import com.takwolf.demo.game.common.service.GameCrypto;
+import com.takwolf.demo.game.common.service.UserService;
 import com.takwolf.netty.vudp.bootstrap.VirtualBootstrap;
 import com.takwolf.netty.vudp.channel.VirtualChannel;
 import io.netty.channel.Channel;
@@ -39,8 +41,8 @@ public class ClientMain {
                         protected void initChannel(VirtualChannel channel) {
                             channel.pipeline()
                                     .addLast(new LoggingHandler("UDP", LogLevel.INFO, ByteBufFormat.SIMPLE))
-                                    .addLast(new GameClientCryptoDecoder(gameCrypto.getConversationId(), gameCrypto.getServerKey()))
-                                    .addLast(new GameClientCryptoEncoder(gameCrypto.getConversationId(), gameCrypto.getClientKey(), gameCrypto.getSequenceSeed()))
+                                    .addLast(new GameCryptoDecoder(gameCrypto.getConversationId(), gameCrypto.getServerKey(), GameCrypto.NONCE_PREFIX_SERVER))
+                                    .addLast(new GameCryptoEncoder(gameCrypto.getConversationId(), gameCrypto.getClientKey(), GameCrypto.NONCE_PREFIX_CLIENT, gameCrypto.getSequenceSeed()))
                                     .addLast(new GameMessageDecoder())
                                     .addLast(new GameMessageEncoder())
                                     .addLast(new GameClientHandler());

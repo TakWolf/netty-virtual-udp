@@ -1,15 +1,15 @@
 package com.takwolf.demo.game.server;
 
-import com.takwolf.demo.game.common.Aes256GcmUtils;
-import com.takwolf.demo.game.common.GameCrypto;
-import com.takwolf.demo.game.common.GameDefine;
-import com.takwolf.demo.game.common.UserService;
+import com.takwolf.demo.game.common.service.GameCrypto;
+import com.takwolf.demo.game.common.service.UserService;
+import com.takwolf.demo.game.common.util.Aes256GcmUtils;
 import com.takwolf.netty.vudp.channel.ChildVirtualChannel;
 import com.takwolf.netty.vudp.router.RouteResult;
 import com.takwolf.netty.vudp.router.VirtualChannelRouter;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.socket.DatagramPacket;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.crypto.spec.GCMParameterSpec;
@@ -18,8 +18,9 @@ import java.security.GeneralSecurityException;
 import java.util.Optional;
 
 @Slf4j
+@RequiredArgsConstructor
 public class GameServerChannelRouter implements VirtualChannelRouter<Integer, GameCrypto, DatagramPacket> {
-    private final UserService userService = new UserService();
+    private final UserService userService;
 
     @Override
     public Optional<Integer> parseKey(DatagramPacket packet) {
@@ -47,12 +48,12 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
 
     @Override
     public GameCrypto existingContext(Integer conversationId, ChildVirtualChannel channel) {
-        return channel.attr(GameServerDefine.ATTR_GAME_CRYPTO).get();
+        return channel.attr(GameCrypto.ATTR).get();
     }
 
     @Override
     public void attachContext(Integer conversationId, GameCrypto gameCrypto, ChildVirtualChannel channel) {
-        channel.attr(GameServerDefine.ATTR_GAME_CRYPTO).set(gameCrypto);
+        channel.attr(GameCrypto.ATTR).set(gameCrypto);
     }
 
     @Override
@@ -61,7 +62,7 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
         long sequence = in.readLong();
 
         ByteBuffer nonceBuffer = ByteBuffer.allocate(12);
-        nonceBuffer.put(GameDefine.NONCE_CLIENT_PREFIX);
+        nonceBuffer.put(GameCrypto.NONCE_PREFIX_CLIENT);
         nonceBuffer.putLong(sequence);
         GCMParameterSpec nonce = Aes256GcmUtils.createNonce(nonceBuffer.array());
 

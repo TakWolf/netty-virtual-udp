@@ -1,4 +1,4 @@
-package com.takwolf.demo.game.common;
+package com.takwolf.demo.game.common.handler;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;

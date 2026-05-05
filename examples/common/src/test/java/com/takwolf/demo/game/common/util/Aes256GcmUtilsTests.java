@@ -1,4 +1,4 @@
-package com.takwolf.demo.game.common;
+package com.takwolf.demo.game.common.util;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Test;
