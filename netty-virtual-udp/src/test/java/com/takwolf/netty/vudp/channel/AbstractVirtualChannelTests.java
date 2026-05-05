@@ -20,11 +20,8 @@ public class AbstractVirtualChannelTests {
         FakeVirtualChannel channel = new FakeVirtualChannel();
         assertEquals("[id: 0x" + channel.id().asShortText() + "]", channel.toString());
         channel.setLocalAddress(new InetSocketAddress("127.0.0.1", 10000));
-        assertEquals("[id: 0x" + channel.id().asShortText() + "]", channel.toString());
-        channel.setActive(true);
         assertEquals("[id: 0x" + channel.id().asShortText() + ", L:/127.0.0.1:10000]", channel.toString());
         channel.setRemoteAddress(new InetSocketAddress("192.168.1.1", 12345));
-        channel.setActive(false);
         assertEquals("[id: 0x" + channel.id().asShortText() + ", L:/127.0.0.1:10000 ! R:/192.168.1.1:12345]", channel.toString());
         channel.setActive(true);
         assertEquals("[id: 0x" + channel.id().asShortText() + ", L:/127.0.0.1:10000 - R:/192.168.1.1:12345]", channel.toString());

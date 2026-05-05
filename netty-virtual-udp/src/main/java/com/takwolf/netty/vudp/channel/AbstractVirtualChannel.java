@@ -8,6 +8,7 @@ import io.netty.channel.DefaultChannelPipeline;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.SocketAddress;
+import java.util.Objects;
 
 abstract class AbstractVirtualChannel implements Channel {
     protected static ChannelPipeline createPipeline(Channel channel) {
@@ -20,19 +21,21 @@ abstract class AbstractVirtualChannel implements Channel {
         }
     }
 
+    private SocketAddress strValLocalAddress;
+    private SocketAddress strValRemoteAddress;
     private boolean strValActive;
     private String strVal;
 
     @Override
     public String toString() {
+        SocketAddress localAddress = localAddress();
+        SocketAddress remoteAddress = remoteAddress();
         boolean active = isActive();
-        if (strValActive == active && strVal != null) {
+        if (Objects.equals(strValLocalAddress, localAddress) && Objects.equals(strValRemoteAddress, remoteAddress) && strValActive == active && strVal != null) {
             return strVal;
         }
 
         ChannelId id = id();
-        SocketAddress remoteAddress = remoteAddress();
-        SocketAddress localAddress = localAddress();
         if (remoteAddress != null) {
             StringBuilder builder = new StringBuilder(96)
                     .append("[id: 0x")
@@ -60,6 +63,8 @@ abstract class AbstractVirtualChannel implements Channel {
             strVal = builder.toString();
         }
 
+        strValLocalAddress = localAddress;
+        strValRemoteAddress = remoteAddress;
         strValActive = active;
         return strVal;
     }
