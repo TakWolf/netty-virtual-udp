@@ -5,10 +5,10 @@ import com.takwolf.netty.vudp.channel.DefaultChildVirtualChannel;
 import com.takwolf.netty.vudp.channel.VirtualChannel;
 import com.takwolf.netty.vudp.router.RouteResult;
 import com.takwolf.netty.vudp.router.VirtualChannelRouter;
+import com.takwolf.netty.vudp.util.EventExecutorUtil;
 import io.netty.channel.*;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.util.AttributeKey;
-import io.netty.util.concurrent.EventExecutor;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -41,14 +41,6 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
         this.childHandler = childHandler;
         this.childOptions = childOptions;
         this.childAttrs = childAttrs;
-    }
-
-    private void executeInEventLoop(EventExecutor eventLoop, Runnable runnable) {
-        if (eventLoop.inEventLoop()) {
-            runnable.run();
-        } else {
-            eventLoop.execute(runnable);
-        }
     }
 
     @Override
@@ -86,7 +78,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
 
         pendingReadTasks += 1;
         packet.retain();
-        executeInEventLoop(eventLoop, () -> {
+        EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
             if (childChannel == null) {
                 routeNewChannel(context, eventLoop, key, packet);
             } else {
@@ -97,7 +89,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
 
     private void finishReadTask(ChannelHandlerContext context, DatagramPacket packet) {
         packet.release();
-        executeInEventLoop(context.executor(), () -> {
+        EventExecutorUtil.executeInEventLoop(context.executor(), () -> {
             pendingReadTasks -= 1;
             checkAndFlushReadComplete();
         });
@@ -144,7 +136,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
                 }
                 channel.closeFuture().addListener((ChannelFutureListener) future -> registry.remove(routeKey));
 
-                executeInEventLoop(context.executor(), () -> virtualChannel().pipeline()
+                EventExecutorUtil.executeInEventLoop(context.executor(), () -> virtualChannel().pipeline()
                         .fireChannelRead(channel)
                         .fireChannelReadComplete());
 
@@ -163,7 +155,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
                 channel.pipeline().fireExceptionCaught(e);
             }
 
-            executeInEventLoop(context.executor(), () -> {
+            EventExecutorUtil.executeInEventLoop(context.executor(), () -> {
                 channel.pipeline().fireChannelRead(message);
                 readTouched.add(channel);
             });
@@ -183,7 +175,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
             return;
         }
 
-        executeInEventLoop(newEventLoop, () -> routeExistingChannel(context, childChannel, key, packet));
+        EventExecutorUtil.executeInEventLoop(newEventLoop, () -> routeExistingChannel(context, childChannel, key, packet));
     }
 
     private void routeExistingChannel(ChannelHandlerContext context, ChildVirtualChannel childChannel, Key key, DatagramPacket packet) {
@@ -221,7 +213,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
             childChannel.pipeline().fireExceptionCaught(e);
         }
 
-        executeInEventLoop(context.executor(), () -> {
+        EventExecutorUtil.executeInEventLoop(context.executor(), () -> {
             childChannel.pipeline().fireChannelRead(message);
             readTouched.add(childChannel);
         });

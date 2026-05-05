@@ -1,5 +1,6 @@
 package com.takwolf.netty.vudp.channel;
 
+import com.takwolf.netty.vudp.util.EventExecutorUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.*;
@@ -309,14 +310,6 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
             return channel.parent().wrappedChannel().eventLoop();
         }
 
-        private void executeInEventLoop(EventLoop eventLoop, Runnable runnable) {
-            if (eventLoop.inEventLoop()) {
-                runnable.run();
-            } else {
-                eventLoop.execute(runnable);
-            }
-        }
-
         @Override
         public RecvByteBufAllocator.ExtendedHandle recvBufAllocHandle() {
             throw new UnsupportedOperationException();
@@ -334,7 +327,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
         @Override
         public void register(EventLoop eventLoop, ChannelPromise promise) {
-            executeInEventLoop(eventLoop, () -> channel.doRegister(eventLoop, promise));
+            EventExecutorUtil.executeInEventLoop(eventLoop, () -> channel.doRegister(eventLoop, promise));
         }
 
         @Override
@@ -358,7 +351,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
             if (eventLoop == null) {
                 promise.setSuccess();
             } else {
-                executeInEventLoop(eventLoop, () -> channel.doClose(promise));
+                EventExecutorUtil.executeInEventLoop(eventLoop, () -> channel.doClose(promise));
             }
         }
 
@@ -373,7 +366,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
             if (eventLoop == null) {
                 promise.setSuccess();
             } else {
-                executeInEventLoop(eventLoop, () -> channel.doDeregister(promise));
+                EventExecutorUtil.executeInEventLoop(eventLoop, () -> channel.doDeregister(promise));
             }
         }
 
@@ -384,7 +377,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
         public void write(Object message, ChannelPromise promise) {
             if (message instanceof ByteBuf) {
                 DatagramPacket packet = new DatagramPacket((ByteBuf) message, remoteAddress());
-                executeInEventLoop(wrappedEventLoop(), () -> wrappedUnsafe().write(packet, promise));
+                EventExecutorUtil.executeInEventLoop(wrappedEventLoop(), () -> wrappedUnsafe().write(packet, promise));
             } else {
                 promise.setFailure(new IllegalStateException("unsupported message type"));
             }
@@ -392,7 +385,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
         @Override
         public void flush() {
-            executeInEventLoop(wrappedEventLoop(), () -> wrappedUnsafe().flush());
+            EventExecutorUtil.executeInEventLoop(wrappedEventLoop(), () -> wrappedUnsafe().flush());
         }
 
         @Override
