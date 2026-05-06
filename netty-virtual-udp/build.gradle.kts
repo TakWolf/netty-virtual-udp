@@ -33,7 +33,7 @@ mavenPublishing {
 
     pom {
         name.set("Netty Virtual UDP")
-        description.set("A Netty virtual UDP library that provides a TCP-like transport abstraction")
+        description.set("A virtual connection abstraction for Netty UDP, mapping datagrams into isolated session channels")
         url.set("https://github.com/TakWolf/netty-virtual-udp")
         inceptionYear.set("2026")
         licenses {
