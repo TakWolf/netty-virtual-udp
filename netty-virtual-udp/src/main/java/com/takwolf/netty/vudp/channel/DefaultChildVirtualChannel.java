@@ -293,11 +293,9 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
     private static final class DefaultUnsafe implements Unsafe {
         private final DefaultChildVirtualChannel channel;
-        private final VoidChannelPromise voidPromise;
 
         DefaultUnsafe(DefaultChildVirtualChannel channel) {
             this.channel = channel;
-            voidPromise = new VoidChannelPromise(channel, false);
         }
 
         private Unsafe wrappedUnsafe() {
@@ -355,7 +353,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
         @Override
         public void closeForcibly() {
-            close(channel.voidPromise());
+            close(voidPromise());
         }
 
         @Override
@@ -397,7 +395,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
         @Override
         public ChannelPromise voidPromise() {
-            return voidPromise;
+            return channel.voidPromise();
         }
 
         @Override
