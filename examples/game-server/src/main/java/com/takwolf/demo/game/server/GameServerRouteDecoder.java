@@ -1,7 +1,6 @@
 package com.takwolf.demo.game.server;
 
 import com.takwolf.netty.vudp.channel.ChildVirtualChannel;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 
@@ -17,6 +16,6 @@ public class GameServerRouteDecoder extends MessageToMessageDecoder<GameServerCh
             ChildVirtualChannel channel = (ChildVirtualChannel) context.channel();
             channel.remoteAddress(message.getRemoteAddress());
         }
-        out.add(Unpooled.wrappedBuffer(message.getData()));
+        out.add(message.content().retain());
     }
 }

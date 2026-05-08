@@ -7,6 +7,8 @@ import com.takwolf.netty.vudp.channel.ChildVirtualChannel;
 import com.takwolf.netty.vudp.router.RouteResult;
 import com.takwolf.netty.vudp.router.VirtualChannelRouter;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.DefaultByteBufHolder;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.socket.DatagramPacket;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -88,14 +90,18 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
             return RouteResult.none();
         }
 
-        return RouteResult.of(new RouteMessage(packet.sender(), sequence, plaintext));
+        return RouteResult.of(new RouteMessage(packet.sender(), sequence, Unpooled.wrappedBuffer(plaintext)));
     }
 
     @Getter
-    @RequiredArgsConstructor
-    public static final class RouteMessage {
+    public static final class RouteMessage extends DefaultByteBufHolder {
         private final InetSocketAddress remoteAddress;
         private final long sequence;
-        private final byte[] data;
+
+        public RouteMessage(InetSocketAddress remoteAddress, long sequence, ByteBuf data) {
+            super(data);
+            this.remoteAddress = remoteAddress;
+            this.sequence = sequence;
+        }
     }
 }
