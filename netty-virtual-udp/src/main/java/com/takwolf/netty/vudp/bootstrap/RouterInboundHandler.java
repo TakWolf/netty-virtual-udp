@@ -1,6 +1,5 @@
 package com.takwolf.netty.vudp.bootstrap;
 
-import com.takwolf.netty.vudp.channel.ChildVirtualChannel;
 import com.takwolf.netty.vudp.channel.DefaultChildVirtualChannel;
 import com.takwolf.netty.vudp.channel.VirtualChannel;
 import com.takwolf.netty.vudp.router.RouteResult;
@@ -22,8 +21,8 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
     private final Map<ChannelOption<?>, Object> childOptions;
     private final Map<AttributeKey<?>, Object> childAttrs;
 
-    private final Map<Key, ChildVirtualChannel> registry = new ConcurrentHashMap<>();
-    private final Set<ChildVirtualChannel> readTouched = new HashSet<>();
+    private final Map<Key, DefaultChildVirtualChannel> registry = new ConcurrentHashMap<>();
+    private final Set<DefaultChildVirtualChannel> readTouched = new HashSet<>();
 
     private int pendingReadTasks;
 
@@ -46,7 +45,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
     @Override
     public void channelInactive(ChannelHandlerContext context) {
         super.channelInactive(context);
-        for (ChildVirtualChannel childChannel : registry.values()) {
+        for (DefaultChildVirtualChannel childChannel : registry.values()) {
             childChannel.unsafe().close(childChannel.voidPromise());
         }
     }
@@ -65,7 +64,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
         }
 
         EventLoop eventLoop;
-        ChildVirtualChannel childChannel = registry.get(key);
+        DefaultChildVirtualChannel childChannel = registry.get(key);
         if (childChannel == null) {
             eventLoop = childGroup.next();
         } else {
@@ -98,7 +97,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
     private void routeNewChannel(ChannelHandlerContext context, EventLoop eventLoop, Key key, DatagramPacket packet) {
         boolean[] created = { false };
 
-        ChildVirtualChannel childChannel = registry.computeIfAbsent(key, routeKey -> {
+        DefaultChildVirtualChannel childChannel = registry.computeIfAbsent(key, routeKey -> {
             created[0] = true;
 
             RouteContext routeContext;
@@ -174,7 +173,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
         EventExecutorUtil.executeInEventLoop(newEventLoop, () -> routeExistingChannel(context, childChannel, key, packet));
     }
 
-    private void routeExistingChannel(ChannelHandlerContext context, ChildVirtualChannel childChannel, Key key, DatagramPacket packet) {
+    private void routeExistingChannel(ChannelHandlerContext context, DefaultChildVirtualChannel childChannel, Key key, DatagramPacket packet) {
         if (!childChannel.isActive()) {
             // Channel is being closed and cannot receive any messages, so ignore.
             finishReadTask(context, packet);
@@ -213,7 +212,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
         if (pendingReadTasks > 0) {
             return;
         }
-        for (ChildVirtualChannel childChannel : readTouched) {
+        for (DefaultChildVirtualChannel childChannel : readTouched) {
             childChannel.pipeline().fireChannelReadComplete();
         }
         readTouched.clear();
@@ -222,7 +221,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext context) {
         super.channelWritabilityChanged(context);
-        for (ChildVirtualChannel childChannel : registry.values()) {
+        for (DefaultChildVirtualChannel childChannel : registry.values()) {
             childChannel.pipeline().fireChannelWritabilityChanged();
         }
     }
