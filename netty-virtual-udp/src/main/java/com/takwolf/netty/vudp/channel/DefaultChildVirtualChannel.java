@@ -24,6 +24,8 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
     private volatile InetSocketAddress remoteAddress;
     private volatile EventLoop eventLoop;
+    private volatile boolean registered;
+    private volatile boolean readTouched;
 
     public DefaultChildVirtualChannel(VirtualChannel parent, InetSocketAddress remoteAddress) {
         this.parent = parent;
@@ -57,7 +59,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
     @Override
     public boolean isRegistered() {
-        return eventLoop != null;
+        return registered;
     }
 
     @Override
@@ -115,32 +117,92 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
         return pipeline;
     }
 
+    public void doRead(Object message) {
+        if (eventLoop == null) {
+            ReferenceCountUtil.release(message);
+            return;
+        }
+        EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
+            readTouched = true;
+            pipeline.fireChannelRead(message);
+        });
+    }
+
+    public void doReadComplete() {
+        if (eventLoop == null) {
+            return;
+        }
+        EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
+            if (readTouched) {
+                readTouched = false;
+                pipeline.fireChannelReadComplete();
+            }
+        });
+    }
+
     void doRegister(EventLoop eventLoop, ChannelPromise promise) {
-        if (this.eventLoop == null) {
+        EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
+            if (closeFuture.isDone()) {
+                promise.setFailure(new IllegalStateException("channel already closed"));
+                return;
+            }
+            if (registered) {
+                promise.setFailure(new IllegalStateException("eventLoop already registered"));
+                return;
+            }
+            registered = true;
             this.eventLoop = eventLoop;
             pipeline.fireChannelRegistered();
+            pipeline.fireChannelActive();
             promise.setSuccess();
-        } else {
-            promise.setFailure(new IllegalStateException("eventLoop already registered"));
-        }
+        });
     }
 
     void doClose(ChannelPromise promise) {
-        if (!closeFuture.isDone()) {
-            closeFuture.setClosed();
-            pipeline.fireChannelInactive();
+        if (closeFuture.isDone()) {
+            promise.setSuccess();
+            return;
         }
-        if (eventLoop != null) {
-            eventLoop = null;
-            pipeline.fireChannelUnregistered();
+        closeFuture.setClosed();
+        if (registered) {
+            EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
+                if (registered) {
+                    registered = false;
+                    if (readTouched) {
+                        readTouched = false;
+                        pipeline.fireChannelReadComplete();
+                    }
+                    pipeline.fireChannelInactive();
+                    pipeline.fireChannelUnregistered();
+                    eventLoop = null;
+                }
+                promise.setSuccess();
+            });
+            return;
         }
         promise.setSuccess();
     }
 
     void doDeregister(ChannelPromise promise) {
-        if (eventLoop != null) {
-            eventLoop = null;
-            pipeline.fireChannelUnregistered();
+        if (closeFuture.isDone()) {
+            promise.setFailure(new IllegalStateException("channel already closed"));
+            return;
+        }
+        if (registered) {
+            EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
+                if (registered) {
+                    registered = false;
+                    if (readTouched) {
+                        readTouched = false;
+                        pipeline.fireChannelReadComplete();
+                    }
+                    pipeline.fireChannelInactive();
+                    pipeline.fireChannelUnregistered();
+                    eventLoop = null;
+                }
+                promise.setSuccess();
+            });
+            return;
         }
         promise.setSuccess();
     }
@@ -323,7 +385,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
         @Override
         public void register(EventLoop eventLoop, ChannelPromise promise) {
-            EventExecutorUtil.executeInEventLoop(eventLoop, () -> channel.doRegister(eventLoop, promise));
+            channel.doRegister(eventLoop, promise);
         }
 
         @Override
@@ -343,12 +405,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
         @Override
         public void close(ChannelPromise promise) {
-            EventLoop eventLoop = channel.eventLoop();
-            if (eventLoop == null) {
-                promise.setSuccess();
-            } else {
-                EventExecutorUtil.executeInEventLoop(eventLoop, () -> channel.doClose(promise));
-            }
+            channel.doClose(promise);
         }
 
         @Override
@@ -358,12 +415,7 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
         @Override
         public void deregister(ChannelPromise promise) {
-            EventLoop eventLoop = channel.eventLoop();
-            if (eventLoop == null) {
-                promise.setSuccess();
-            } else {
-                EventExecutorUtil.executeInEventLoop(eventLoop, () -> channel.doDeregister(promise));
-            }
+            channel.doDeregister(promise);
         }
 
         @Override

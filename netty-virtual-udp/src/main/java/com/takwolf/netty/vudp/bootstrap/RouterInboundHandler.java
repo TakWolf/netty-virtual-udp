@@ -142,7 +142,6 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
                         .fireChannelReadComplete());
 
                 channel.unsafe().register(eventLoop, channel.voidPromise());
-                channel.pipeline().fireChannelActive();
             } catch (Exception e) {
                 finishReadTask(context, packet);
                 channel.unsafe().close(channel.voidPromise());
@@ -151,8 +150,8 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
             }
 
             EventExecutorUtil.executeInEventLoop(context.executor(), () -> {
-                channel.pipeline().fireChannelRead(message);
                 readTouched.add(channel);
+                channel.doRead(message);
             });
             finishReadTask(context, packet);
 
@@ -197,8 +196,8 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
         }
 
         EventExecutorUtil.executeInEventLoop(context.executor(), () -> {
-            childChannel.pipeline().fireChannelRead(message);
             readTouched.add(childChannel);
+            childChannel.doRead(message);
         });
         finishReadTask(context, packet);
     }
@@ -213,7 +212,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
             return;
         }
         for (DefaultChildVirtualChannel childChannel : readTouched) {
-            childChannel.pipeline().fireChannelReadComplete();
+            childChannel.doReadComplete();
         }
         readTouched.clear();
     }
