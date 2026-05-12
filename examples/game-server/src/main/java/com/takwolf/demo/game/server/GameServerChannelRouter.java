@@ -4,11 +4,13 @@ import com.takwolf.demo.game.common.service.GameCrypto;
 import com.takwolf.demo.game.common.service.UserService;
 import com.takwolf.demo.game.common.util.Aes256GcmUtils;
 import com.takwolf.netty.vudp.channel.ChildVirtualChannel;
+import com.takwolf.netty.vudp.router.RouteKeyChannelId;
 import com.takwolf.netty.vudp.router.RouteResult;
 import com.takwolf.netty.vudp.router.VirtualChannelRouter;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.DefaultByteBufHolder;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelId;
 import io.netty.channel.socket.DatagramPacket;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,11 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
 
         int conversationId = in.readInt();
         return Optional.of(conversationId);
+    }
+
+    @Override
+    public ChannelId channelId(Integer conversationId) {
+        return new RouteKeyChannelId(conversationId);
     }
 
     @Override
