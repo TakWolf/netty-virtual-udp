@@ -5,7 +5,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.socket.DatagramPacket;
-import io.netty.util.*;
+import io.netty.util.ReferenceCountUtil;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -17,7 +17,6 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
     private final ChannelId id = DefaultChannelId.newInstance();
 
     private final VirtualChannel parent;
-    private final AttributeMap attrs = new DefaultAttributeMap();
     private final Unsafe unsafe = new DefaultUnsafe(this);
     private final CloseFuture closeFuture = new CloseFuture(this);
     private final ChannelPipeline pipeline = createPipeline(this);
@@ -205,16 +204,6 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
             return;
         }
         promise.setSuccess();
-    }
-
-    @Override
-    public <T> Attribute<T> attr(AttributeKey<T> key) {
-        return attrs.attr(key);
-    }
-
-    @Override
-    public <T> boolean hasAttr(AttributeKey<T> key) {
-        return attrs.hasAttr(key);
     }
 
     private static final class NoOperationChannelConfig implements ChannelConfig {

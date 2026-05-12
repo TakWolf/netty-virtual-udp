@@ -3,8 +3,6 @@ package com.takwolf.netty.vudp.channel;
 import io.netty.channel.*;
 import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.DatagramChannelConfig;
-import io.netty.util.Attribute;
-import io.netty.util.AttributeKey;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -99,16 +97,6 @@ public class FakeVirtualChannel extends AbstractVirtualChannel implements Virtua
     @Override
     public ChannelPipeline pipeline() {
         return pipeline;
-    }
-
-    @Override
-    public <T> Attribute<T> attr(AttributeKey<T> key) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public <T> boolean hasAttr(AttributeKey<T> key) {
-        throw new UnsupportedOperationException();
     }
 
     private static final class FakeUnsafe implements Unsafe {

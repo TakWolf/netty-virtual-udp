@@ -115,16 +115,6 @@ public final class DefaultVirtualChannel extends AbstractVirtualChannel implemen
         return pipeline;
     }
 
-    @Override
-    public <T> Attribute<T> attr(AttributeKey<T> key) {
-        return wrappedChannel.attr(key);
-    }
-
-    @Override
-    public <T> boolean hasAttr(AttributeKey<T> key) {
-        return wrappedChannel.hasAttr(key);
-    }
-
     private static final class DefaultUnsafe implements Unsafe {
         private final VirtualChannel channel;
 
