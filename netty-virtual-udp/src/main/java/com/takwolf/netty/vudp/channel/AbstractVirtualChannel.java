@@ -5,6 +5,7 @@ import io.netty.channel.ChannelId;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.DefaultChannelPipeline;
 import io.netty.util.DefaultAttributeMap;
+import org.jspecify.annotations.NonNull;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -71,7 +72,7 @@ abstract class AbstractVirtualChannel extends DefaultAttributeMap implements Cha
     }
 
     @Override
-    public int compareTo(Channel other) {
+    public int compareTo(@NonNull Channel other) {
         if (this == other) {
             return 0;
         }

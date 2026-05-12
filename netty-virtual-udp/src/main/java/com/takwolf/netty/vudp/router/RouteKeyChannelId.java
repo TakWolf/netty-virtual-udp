@@ -2,6 +2,7 @@ package com.takwolf.netty.vudp.router;
 
 import io.netty.channel.ChannelId;
 import io.netty.channel.DefaultChannelId;
+import org.jspecify.annotations.NonNull;
 
 public final class RouteKeyChannelId implements ChannelId {
     private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
@@ -70,7 +71,7 @@ public final class RouteKeyChannelId implements ChannelId {
     }
 
     @Override
-    public int compareTo(ChannelId other) {
+    public int compareTo(@NonNull ChannelId other) {
         if (this == other) {
             return 0;
         }
