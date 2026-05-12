@@ -1,5 +1,6 @@
 package com.takwolf.netty.vudp.channel;
 
+import com.takwolf.netty.vudp.util.ProxyChannelPromise;
 import io.netty.channel.*;
 import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.DatagramChannelConfig;
@@ -23,10 +24,12 @@ public final class DefaultVirtualChannel extends AbstractVirtualChannel implemen
 
     private final DatagramChannel wrappedChannel;
     private final ChannelPipeline pipeline;
+    private final ChannelFuture closeFuture;
 
     private DefaultVirtualChannel(DatagramChannel wrappedChannel) {
         this.wrappedChannel = wrappedChannel;
         pipeline = createPipeline(this);
+        closeFuture = new ProxyChannelPromise(this, wrappedChannel.closeFuture());
     }
 
     @Override
@@ -86,7 +89,7 @@ public final class DefaultVirtualChannel extends AbstractVirtualChannel implemen
 
     @Override
     public ChannelFuture closeFuture() {
-        return wrappedChannel.closeFuture();
+        return closeFuture;
     }
 
     @Override
