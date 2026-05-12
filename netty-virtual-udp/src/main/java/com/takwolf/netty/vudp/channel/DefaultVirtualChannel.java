@@ -7,7 +7,6 @@ import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 
 public final class DefaultVirtualChannel extends AbstractVirtualChannel implements VirtualChannel {
     private static final AttributeKey<DefaultVirtualChannel> ATTR_VIRTUAL_CHANNEL = AttributeKey.valueOf("virtualChannel");
@@ -23,11 +22,11 @@ public final class DefaultVirtualChannel extends AbstractVirtualChannel implemen
     }
 
     private final DatagramChannel wrappedChannel;
-    private final Unsafe unsafe = new DefaultUnsafe(this);
-    private final ChannelPipeline pipeline = createPipeline(this);
+    private final ChannelPipeline pipeline;
 
     private DefaultVirtualChannel(DatagramChannel wrappedChannel) {
         this.wrappedChannel = wrappedChannel;
+        pipeline = createPipeline(this);
     }
 
     @Override
@@ -47,7 +46,7 @@ public final class DefaultVirtualChannel extends AbstractVirtualChannel implemen
 
     @Override
     public Channel parent() {
-        return null;
+        return wrappedChannel.parent();
     }
 
     @Override
@@ -107,99 +106,11 @@ public final class DefaultVirtualChannel extends AbstractVirtualChannel implemen
 
     @Override
     public Unsafe unsafe() {
-        return unsafe;
+        return wrappedChannel.unsafe();
     }
 
     @Override
     public ChannelPipeline pipeline() {
         return pipeline;
-    }
-
-    private static final class DefaultUnsafe implements Unsafe {
-        private final VirtualChannel channel;
-
-        DefaultUnsafe(VirtualChannel channel) {
-            this.channel = channel;
-        }
-
-        private Unsafe wrappedUnsafe() {
-            return channel.wrappedChannel().unsafe();
-        }
-
-        @SuppressWarnings("deprecation")
-        @Override
-        public RecvByteBufAllocator.Handle recvBufAllocHandle() {
-            return wrappedUnsafe().recvBufAllocHandle();
-        }
-
-        @Override
-        public SocketAddress localAddress() {
-            return wrappedUnsafe().localAddress();
-        }
-
-        @Override
-        public SocketAddress remoteAddress() {
-            return wrappedUnsafe().remoteAddress();
-        }
-
-        @Override
-        public void register(EventLoop eventLoop, ChannelPromise promise) {
-            wrappedUnsafe().register(eventLoop, promise);
-        }
-
-        @Override
-        public void bind(SocketAddress localAddress, ChannelPromise promise) {
-            wrappedUnsafe().bind(localAddress, promise);
-        }
-
-        @Override
-        public void connect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) {
-            wrappedUnsafe().connect(remoteAddress, localAddress, promise);
-        }
-
-        @Override
-        public void disconnect(ChannelPromise promise) {
-            wrappedUnsafe().disconnect(promise);
-        }
-
-        @Override
-        public void close(ChannelPromise promise) {
-            wrappedUnsafe().close(promise);
-        }
-
-        @Override
-        public void closeForcibly() {
-            wrappedUnsafe().closeForcibly();
-        }
-
-        @Override
-        public void deregister(ChannelPromise promise) {
-            wrappedUnsafe().deregister(promise);
-        }
-
-        @Override
-        public void beginRead() {
-            wrappedUnsafe().beginRead();
-        }
-
-        @Override
-        public void write(Object message, ChannelPromise promise) {
-            wrappedUnsafe().write(message, promise);
-        }
-
-        @Override
-        public void flush() {
-            wrappedUnsafe().flush();
-        }
-
-        @Override
-        public ChannelPromise voidPromise() {
-            return wrappedUnsafe().voidPromise();
-        }
-
-        @Override
-        public ChannelOutboundBuffer outboundBuffer() {
-            return wrappedUnsafe().outboundBuffer();
-        }
     }
 }
