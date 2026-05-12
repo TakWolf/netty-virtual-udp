@@ -10,10 +10,10 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 
 public final class DefaultVirtualChannel extends AbstractVirtualChannel implements VirtualChannel {
-    private static final AttributeKey<DefaultVirtualChannel> ATTR_WRAPPED_CHANNEL = AttributeKey.valueOf("wrappedChannel");
+    private static final AttributeKey<DefaultVirtualChannel> ATTR_VIRTUAL_CHANNEL = AttributeKey.valueOf("virtualChannel");
 
     public static synchronized DefaultVirtualChannel instance(DatagramChannel wrappedChannel) {
-        Attribute<DefaultVirtualChannel> attr = wrappedChannel.attr(ATTR_WRAPPED_CHANNEL);
+        Attribute<DefaultVirtualChannel> attr = wrappedChannel.attr(ATTR_VIRTUAL_CHANNEL);
         DefaultVirtualChannel channel = attr.get();
         if (channel == null) {
             channel = new DefaultVirtualChannel(wrappedChannel);
