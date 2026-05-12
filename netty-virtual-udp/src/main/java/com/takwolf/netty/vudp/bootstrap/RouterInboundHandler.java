@@ -100,9 +100,12 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
         DefaultChildVirtualChannel childChannel = registry.computeIfAbsent(key, routeKey -> {
             created[0] = true;
 
+            ChannelId channelId;
             RouteContext routeContext;
             Out message;
             try {
+                channelId = router.channelId(key);
+
                 RouteResult<RouteContext> routeContextResult = router.newContext(routeKey);
                 if (!routeContextResult.ok()) {
                     finishReadTask(context, packet);
@@ -122,7 +125,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
                 return null;
             }
 
-            DefaultChildVirtualChannel channel = new DefaultChildVirtualChannel(virtualChannel(), packet.sender());
+            DefaultChildVirtualChannel channel = new DefaultChildVirtualChannel(channelId, virtualChannel(), packet.sender());
             try {
                 router.attachContext(key, routeContext, channel);
 

@@ -14,8 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 
 public final class DefaultChildVirtualChannel extends AbstractVirtualChannel implements ChildVirtualChannel {
-    private final ChannelId id = DefaultChannelId.newInstance();
-
+    private final ChannelId id;
     private final VirtualChannel parent;
     private final Unsafe unsafe = new DefaultUnsafe(this);
     private final CloseFuture closeFuture = new CloseFuture(this);
@@ -26,7 +25,8 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
     private volatile boolean registered;
     private volatile boolean readTouched;
 
-    public DefaultChildVirtualChannel(VirtualChannel parent, InetSocketAddress remoteAddress) {
+    public DefaultChildVirtualChannel(ChannelId id, VirtualChannel parent, InetSocketAddress remoteAddress) {
+        this.id = id;
         this.parent = parent;
         this.remoteAddress = remoteAddress;
     }
