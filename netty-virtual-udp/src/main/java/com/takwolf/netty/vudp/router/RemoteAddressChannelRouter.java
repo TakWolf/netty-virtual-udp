@@ -10,7 +10,7 @@ public final class RemoteAddressChannelRouter implements VirtualChannelRouter<In
     public static final RemoteAddressChannelRouter INSTANCE = new RemoteAddressChannelRouter();
 
     @Override
-    public Optional<InetSocketAddress> parseKey(DatagramPacket packet) {
+    public Optional<InetSocketAddress> routeKey(DatagramPacket packet) {
         return Optional.of(packet.sender());
     }
 

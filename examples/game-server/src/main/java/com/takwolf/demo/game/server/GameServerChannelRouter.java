@@ -26,7 +26,7 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
     private final UserService userService;
 
     @Override
-    public Optional<Integer> parseKey(DatagramPacket packet) {
+    public Optional<Integer> routeKey(DatagramPacket packet) {
         ByteBuf in = packet.content();
 
         if (in.readableBytes() < 4 + 8 + Aes256GcmUtils.TAG_BYTES_LENGTH) {

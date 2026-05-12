@@ -54,7 +54,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
     protected void channelRead0(ChannelHandlerContext context, DatagramPacket packet) {
         Key key;
         try {
-            key = router.parseKey(packet).orElse(null);
+            key = router.routeKey(packet).orElse(null);
             if (key == null) {
                 return;
             }

@@ -19,7 +19,7 @@ public class RemoteAddressChannelRouterTests {
         DatagramPacket packet = new DatagramPacket(data, recipient, sender);
 
         RemoteAddressChannelRouter router = RemoteAddressChannelRouter.INSTANCE;
-        InetSocketAddress key = router.parseKey(packet).orElseThrow();
+        InetSocketAddress key = router.routeKey(packet).orElseThrow();
         assertEquals(sender, key);
         assertTrue(router.newContext(key).ok());
         assertTrue(router.routeMessage(key, null, packet).ok());

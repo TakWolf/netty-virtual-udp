@@ -6,7 +6,7 @@ import io.netty.channel.socket.DatagramPacket;
 import java.util.Optional;
 
 public interface VirtualChannelRouter<Key, RouteContext, Out> {
-    Optional<Key> parseKey(DatagramPacket packet) throws Exception;
+    Optional<Key> routeKey(DatagramPacket packet) throws Exception;
 
     default RouteResult<RouteContext> newContext(Key key) throws Exception {
         return RouteResult.of();
