@@ -92,30 +92,6 @@ public final class ProxyChannelPromise implements ChannelPromise {
         }
     }
 
-    @Override
-    public boolean setUncancellable() {
-        if (rawFuture instanceof ChannelPromise) {
-            return ((ChannelPromise) rawFuture).setUncancellable();
-        } else {
-            throw new UnsupportedOperationException();
-        }
-    }
-
-    @Override
-    public boolean isSuccess() {
-        return rawFuture.isSuccess();
-    }
-
-    @Override
-    public boolean isCancellable() {
-        return rawFuture.isCancellable();
-    }
-
-    @Override
-    public Throwable cause() {
-        return rawFuture.cause();
-    }
-
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void notifyListener(GenericFutureListener<? extends Future<? super Void>> listener) {
         try {
@@ -197,6 +173,75 @@ public final class ProxyChannelPromise implements ChannelPromise {
     }
 
     @Override
+    public boolean isDone() {
+        return rawFuture.isDone();
+    }
+
+    @Override
+    public boolean isSuccess() {
+        return rawFuture.isSuccess();
+    }
+
+    @Override
+    public Void get() throws InterruptedException, ExecutionException {
+        return rawFuture.get();
+    }
+
+    @Override
+    public Void get(long timeout, @NonNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+        return rawFuture.get(timeout, unit);
+    }
+
+    @Override
+    public Void getNow() {
+        return rawFuture.getNow();
+    }
+
+    @Override
+    public Throwable cause() {
+        return rawFuture.cause();
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return rawFuture.isCancelled();
+    }
+
+    @Override
+    public boolean cancel(boolean mayInterruptIfRunning) {
+        return rawFuture.cancel(mayInterruptIfRunning);
+    }
+
+    @Override
+    public boolean isCancellable() {
+        return rawFuture.isCancellable();
+    }
+
+    @Override
+    public boolean setUncancellable() {
+        if (rawFuture instanceof ChannelPromise) {
+            return ((ChannelPromise) rawFuture).setUncancellable();
+        } else {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    @Override
+    public boolean isVoid() {
+        return rawFuture.isVoid();
+    }
+
+    @Override
+    public ChannelPromise unvoid() {
+        if (rawFuture instanceof ChannelPromise) {
+            ((ChannelPromise) rawFuture).unvoid();
+            return this;
+        } else {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    @Override
     public ChannelPromise sync() throws InterruptedException {
         rawFuture.sync();
         return this;
@@ -238,51 +283,6 @@ public final class ProxyChannelPromise implements ChannelPromise {
     @Override
     public boolean awaitUninterruptibly(long timeoutMillis) {
         return rawFuture.awaitUninterruptibly(timeoutMillis);
-    }
-
-    @Override
-    public Void getNow() {
-        return rawFuture.getNow();
-    }
-
-    @Override
-    public boolean cancel(boolean mayInterruptIfRunning) {
-        return rawFuture.cancel(mayInterruptIfRunning);
-    }
-
-    @Override
-    public boolean isCancelled() {
-        return rawFuture.isCancelled();
-    }
-
-    @Override
-    public boolean isDone() {
-        return rawFuture.isDone();
-    }
-
-    @Override
-    public Void get() throws InterruptedException, ExecutionException {
-        return rawFuture.get();
-    }
-
-    @Override
-    public Void get(long timeout, @NonNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        return rawFuture.get(timeout, unit);
-    }
-
-    @Override
-    public boolean isVoid() {
-        return rawFuture.isVoid();
-    }
-
-    @Override
-    public ChannelPromise unvoid() {
-        if (rawFuture instanceof ChannelPromise) {
-            ((ChannelPromise) rawFuture).unvoid();
-            return this;
-        } else {
-            throw new UnsupportedOperationException();
-        }
     }
 
     @Override
