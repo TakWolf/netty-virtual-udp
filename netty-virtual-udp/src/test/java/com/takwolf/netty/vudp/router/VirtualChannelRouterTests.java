@@ -1,36 +1,21 @@
 package com.takwolf.netty.vudp.router;
 
 import com.takwolf.netty.vudp.channel.ChildVirtualChannel;
-import com.takwolf.netty.vudp.channel.FakeVirtualChannel;
-import com.takwolf.netty.vudp.channel.VirtualChannel;
 import io.netty.channel.DefaultChannelId;
-import io.netty.channel.socket.DatagramPacket;
 import org.junit.jupiter.api.Test;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 public class VirtualChannelRouterTests {
     @Test
     public void test() throws Exception {
-        int key = 1;
-        ChildVirtualChannel channel = new FakeVirtualChannel();
-
-        VirtualChannelRouter<Integer, Void, Void> router = new VirtualChannelRouter<>() {
-            @Override
-            public Optional<Integer> routeKey(DatagramPacket packet) {
-                return Optional.of(key);
-            }
-
-            @Override
-            public RouteResult<Void> routeMessage(Integer key, Void context, DatagramPacket packet) {
-                return RouteResult.of();
-            }
-        };
-        assertInstanceOf(DefaultChannelId.class, router.channelId(key));
-        assertTrue(router.newContext(key).ok());
-        assertNull(router.existingContext(key, channel));
-        router.attachContext(key, null, channel);
+        abstract class MyRouter implements VirtualChannelRouter<Integer, Void, Void> {}
+        MyRouter router = mock(MyRouter.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
+        ChildVirtualChannel channel = mock(ChildVirtualChannel.class);
+        assertInstanceOf(DefaultChannelId.class, router.channelId(1));
+        assertTrue(router.newContext(1).ok());
+        assertNull(router.existingContext(1, channel));
+        router.attachContext(1, null, channel);
     }
 }
