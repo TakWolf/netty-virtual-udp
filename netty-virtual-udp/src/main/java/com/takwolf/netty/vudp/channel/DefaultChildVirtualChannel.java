@@ -1,11 +1,13 @@
 package com.takwolf.netty.vudp.channel;
 
+import com.takwolf.netty.vudp.util.ChannelPromiseUtil;
 import com.takwolf.netty.vudp.util.EventExecutorUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.util.ReferenceCountUtil;
+import io.netty.util.internal.ObjectUtil;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -16,14 +18,13 @@ import java.util.Objects;
 public final class DefaultChildVirtualChannel extends AbstractVirtualChannel implements ChildVirtualChannel {
     private final ChannelId id;
     private final VirtualChannel parent;
-    private final Unsafe unsafe = new DefaultUnsafe(this);
-    private final CloseFuture closeFuture = new CloseFuture(this);
+    private final DefaultUnsafe unsafe = new DefaultUnsafe(this);
     private final ChannelPipeline pipeline = createPipeline(this);
+    private final CloseFuture closeFuture = new CloseFuture(this);
 
     private volatile InetSocketAddress remoteAddress;
     private volatile EventLoop eventLoop;
     private volatile boolean registered;
-    private volatile boolean readTouched;
 
     public DefaultChildVirtualChannel(ChannelId id, VirtualChannel parent, InetSocketAddress remoteAddress) {
         this.id = id;
@@ -38,6 +39,10 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
     @Override
     public EventLoop eventLoop() {
+        EventLoop eventLoop = this.eventLoop;
+        if (eventLoop == null) {
+            throw new IllegalStateException("channel not registered to an event loop");
+        }
         return eventLoop;
     }
 
@@ -107,103 +112,13 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
     }
 
     @Override
-    public Unsafe unsafe() {
+    public DefaultUnsafe unsafe() {
         return unsafe;
     }
 
     @Override
     public ChannelPipeline pipeline() {
         return pipeline;
-    }
-
-    public void doRead(Object message) {
-        if (eventLoop == null) {
-            ReferenceCountUtil.release(message);
-            return;
-        }
-        EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
-            readTouched = true;
-            pipeline.fireChannelRead(message);
-        });
-    }
-
-    public void doReadComplete() {
-        if (eventLoop == null) {
-            return;
-        }
-        EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
-            if (readTouched) {
-                readTouched = false;
-                pipeline.fireChannelReadComplete();
-            }
-        });
-    }
-
-    void doRegister(EventLoop eventLoop, ChannelPromise promise) {
-        EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
-            if (closeFuture.isDone()) {
-                promise.setFailure(new IllegalStateException("channel already closed"));
-                return;
-            }
-            if (registered) {
-                promise.setFailure(new IllegalStateException("eventLoop already registered"));
-                return;
-            }
-            registered = true;
-            this.eventLoop = eventLoop;
-            pipeline.fireChannelRegistered();
-            pipeline.fireChannelActive();
-            promise.setSuccess();
-        });
-    }
-
-    void doClose(ChannelPromise promise) {
-        if (closeFuture.isDone()) {
-            promise.setSuccess();
-            return;
-        }
-        closeFuture.setClosed();
-        if (registered) {
-            EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
-                if (registered) {
-                    registered = false;
-                    if (readTouched) {
-                        readTouched = false;
-                        pipeline.fireChannelReadComplete();
-                    }
-                    pipeline.fireChannelInactive();
-                    pipeline.fireChannelUnregistered();
-                    eventLoop = null;
-                }
-                promise.setSuccess();
-            });
-            return;
-        }
-        promise.setSuccess();
-    }
-
-    void doDeregister(ChannelPromise promise) {
-        if (closeFuture.isDone()) {
-            promise.setFailure(new IllegalStateException("channel already closed"));
-            return;
-        }
-        if (registered) {
-            EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
-                if (registered) {
-                    registered = false;
-                    if (readTouched) {
-                        readTouched = false;
-                        pipeline.fireChannelReadComplete();
-                    }
-                    pipeline.fireChannelInactive();
-                    pipeline.fireChannelUnregistered();
-                    eventLoop = null;
-                }
-                promise.setSuccess();
-            });
-            return;
-        }
-        promise.setSuccess();
     }
 
     private static final class NoOperationChannelConfig implements ChannelConfig {
@@ -342,26 +257,31 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
         }
     }
 
-    private static final class DefaultUnsafe implements Unsafe {
+    public static final class DefaultUnsafe implements Unsafe {
         private final DefaultChildVirtualChannel channel;
         private final VoidChannelPromise voidPromise;
+
+        private volatile boolean readTouched;
 
         DefaultUnsafe(DefaultChildVirtualChannel channel) {
             this.channel = channel;
             voidPromise = new VoidChannelPromise(channel, false);
         }
 
+        public EventLoop tryEventLoop() {
+            return channel.eventLoop;
+        }
+
+        private EventLoop tryWrappedEventLoop() {
+            try {
+                return channel.parent.wrappedChannel().eventLoop();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
         private Unsafe wrappedUnsafe() {
-            return channel.parent().wrappedChannel().unsafe();
-        }
-
-        private EventLoop wrappedEventLoop() {
-            return channel.parent().wrappedChannel().eventLoop();
-        }
-
-        @Override
-        public RecvByteBufAllocator.ExtendedHandle recvBufAllocHandle() {
-            throw new UnsupportedOperationException();
+            return channel.parent.wrappedChannel().unsafe();
         }
 
         @Override
@@ -376,27 +296,80 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
         @Override
         public void register(EventLoop eventLoop, ChannelPromise promise) {
-            channel.doRegister(eventLoop, promise);
+            ObjectUtil.checkNotNull(eventLoop, "eventLoop");
+
+            if (!promise.setUncancellable()) {
+                return;
+            }
+
+            EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
+                if (channel.closeFuture.isDone()) {
+                    ChannelPromiseUtil.safeSetFailure(promise, new IllegalStateException("channel is closed already"));
+                    return;
+                }
+
+                if (channel.registered) {
+                    ChannelPromiseUtil.safeSetFailure(promise, new IllegalStateException("channel registered to an event loop already"));
+                    return;
+                }
+
+                channel.registered = true;
+                channel.eventLoop = eventLoop;
+                channel.pipeline.fireChannelRegistered();
+                channel.pipeline.fireChannelActive();
+                ChannelPromiseUtil.safeSetSuccess(promise);
+            });
         }
 
         @Override
         public void bind(SocketAddress localAddress, ChannelPromise promise) {
-            promise.setSuccess();
+            ChannelPromiseUtil.safeSetFailure(promise, new UnsupportedOperationException());
         }
 
         @Override
         public void connect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) {
-            promise.setSuccess();
+            ChannelPromiseUtil.safeSetFailure(promise, new UnsupportedOperationException());
         }
 
         @Override
         public void disconnect(ChannelPromise promise) {
-            close(promise);
+            ChannelPromiseUtil.safeSetFailure(promise, new UnsupportedOperationException());
         }
 
         @Override
         public void close(ChannelPromise promise) {
-            channel.doClose(promise);
+            if (!promise.setUncancellable()) {
+                return;
+            }
+
+            EventLoop eventLoop = tryEventLoop();
+            if (eventLoop == null) {
+                if (!channel.closeFuture.isDone()) {
+                    channel.closeFuture.setClosed();
+                }
+                ChannelPromiseUtil.safeSetSuccess(promise);
+                return;
+            }
+
+            EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
+                if (channel.closeFuture.isDone()) {
+                    ChannelPromiseUtil.safeSetSuccess(promise);
+                    return;
+                }
+                channel.closeFuture.setClosed();
+
+                if (channel.registered) {
+                    channel.registered = false;
+                    channel.eventLoop = null;
+                    if (readTouched) {
+                        readTouched = false;
+                        channel.pipeline.fireChannelReadComplete();
+                    }
+                    channel.pipeline.fireChannelInactive();
+                    channel.pipeline.fireChannelUnregistered();
+                }
+                ChannelPromiseUtil.safeSetSuccess(promise);
+            });
         }
 
         @Override
@@ -406,34 +379,119 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
 
         @Override
         public void deregister(ChannelPromise promise) {
-            channel.doDeregister(promise);
+            if (!promise.setUncancellable()) {
+                return;
+            }
+
+            if (channel.closeFuture.isDone()) {
+                ChannelPromiseUtil.safeSetFailure(promise, new IllegalStateException("channel is closed already"));
+                return;
+            }
+
+            EventLoop eventLoop = tryEventLoop();
+            if (eventLoop == null) {
+                ChannelPromiseUtil.safeSetSuccess(promise);
+                return;
+            }
+
+            EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
+                if (channel.registered) {
+                    channel.registered = false;
+                    channel.eventLoop = null;
+                    if (readTouched) {
+                        readTouched = false;
+                        channel.pipeline.fireChannelReadComplete();
+                    }
+                    channel.pipeline.fireChannelInactive();
+                    channel.pipeline.fireChannelUnregistered();
+                }
+                ChannelPromiseUtil.safeSetSuccess(promise);
+            });
         }
 
         @Override
         public void beginRead() {}
 
+        public void read(Object message) {
+            EventLoop eventLoop = tryEventLoop();
+            if (eventLoop == null || !channel.isActive()) {
+                ReferenceCountUtil.release(message);
+                return;
+            }
+
+            EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
+                readTouched = true;
+                channel.pipeline.fireChannelRead(message);
+            });
+        }
+
+        public void readComplete() {
+            EventLoop eventLoop = tryEventLoop();
+            if (eventLoop == null || !channel.isActive()) {
+                return;
+            }
+
+            EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
+                if (readTouched) {
+                    readTouched = false;
+                    channel.pipeline.fireChannelReadComplete();
+                }
+            });
+        }
+
         @Override
         public void write(Object message, ChannelPromise promise) {
+            if (!channel.isActive()) {
+                ReferenceCountUtil.release(message);
+                ChannelPromiseUtil.safeSetFailure(promise, new IllegalStateException("channel not registered to an event loop"));
+                return;
+            }
+
+            EventLoop eventLoop = tryWrappedEventLoop();
+            if (eventLoop == null) {
+                ReferenceCountUtil.release(message);
+                ChannelPromiseUtil.safeSetFailure(promise, new IllegalStateException("channel not registered to an event loop"));
+                return;
+            }
+
             if (message instanceof ByteBuf) {
                 DatagramPacket packet = new DatagramPacket((ByteBuf) message, remoteAddress());
-                EventExecutorUtil.executeInEventLoop(wrappedEventLoop(), () -> wrappedUnsafe().write(packet, promise));
+                EventExecutorUtil.executeInEventLoop(eventLoop, () -> wrappedUnsafe().write(packet, promise));
             } else if (message instanceof DatagramPacket) {
                 DatagramPacket packet = (DatagramPacket) message;
                 if (Objects.equals(packet.recipient(), remoteAddress())) {
-                    EventExecutorUtil.executeInEventLoop(wrappedEventLoop(), () -> wrappedUnsafe().write(packet, promise));
+                    EventExecutorUtil.executeInEventLoop(eventLoop, () -> wrappedUnsafe().write(packet, promise));
                 } else {
                     ReferenceCountUtil.release(packet);
-                    promise.setFailure(new IllegalStateException("cannot send message to non-target remoteAddress"));
+                    ChannelPromiseUtil.safeSetFailure(promise, new IllegalStateException("cannot send message to non-target remoteAddress"));
                 }
             } else {
                 ReferenceCountUtil.release(message);
-                promise.setFailure(new IllegalStateException("unsupported message type"));
+                ChannelPromiseUtil.safeSetFailure(promise, new IllegalStateException("unsupported message type"));
             }
         }
 
         @Override
         public void flush() {
-            EventExecutorUtil.executeInEventLoop(wrappedEventLoop(), () -> wrappedUnsafe().flush());
+            if (!channel.isActive()) {
+                return;
+            }
+
+            EventLoop eventLoop = tryWrappedEventLoop();
+            if (eventLoop == null) {
+                return;
+            }
+
+            EventExecutorUtil.executeInEventLoop(eventLoop, () -> wrappedUnsafe().flush());
+        }
+
+        public void writabilityChanged() {
+            EventLoop eventLoop = tryEventLoop();
+            if (eventLoop == null || !channel.isActive()) {
+                return;
+            }
+
+            EventExecutorUtil.executeInEventLoop(eventLoop, channel.pipeline::fireChannelWritabilityChanged);
         }
 
         @Override
@@ -442,8 +500,13 @@ public final class DefaultChildVirtualChannel extends AbstractVirtualChannel imp
         }
 
         @Override
+        public RecvByteBufAllocator.ExtendedHandle recvBufAllocHandle() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public ChannelOutboundBuffer outboundBuffer() {
-            return null;
+            throw new UnsupportedOperationException();
         }
     }
 

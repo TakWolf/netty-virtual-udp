@@ -8,6 +8,8 @@ import com.takwolf.netty.vudp.util.EventExecutorUtil;
 import io.netty.channel.*;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.util.AttributeKey;
+import io.netty.util.internal.logging.InternalLogger;
+import io.netty.util.internal.logging.InternalLoggerFactory;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -15,6 +17,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundHandler {
+    private static final InternalLogger logger = InternalLoggerFactory.getInstance(RouterInboundHandler.class);
+
     private final VirtualChannelRouter<Key, RouteContext, Out> router;
     private final EventLoopGroup childGroup;
     private final ChannelHandler childHandler;
@@ -23,7 +27,6 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
 
     private final Map<Key, DefaultChildVirtualChannel> registry = new ConcurrentHashMap<>();
     private final Set<DefaultChildVirtualChannel> readTouched = new HashSet<>();
-
     private int pendingReadTasks;
 
     RouterInboundHandler(
@@ -46,7 +49,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
     public void channelInactive(ChannelHandlerContext context) {
         super.channelInactive(context);
         for (DefaultChildVirtualChannel childChannel : registry.values()) {
-            childChannel.unsafe().close(childChannel.voidPromise());
+            childChannel.unsafe().close(childChannel.unsafe().voidPromise());
         }
     }
 
@@ -68,9 +71,9 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
         if (childChannel == null) {
             eventLoop = childGroup.next();
         } else {
-            eventLoop = childChannel.eventLoop();
-            if (!childChannel.isActive()) {
-                // Channel is being closed and cannot receive any messages, so ignore.
+            eventLoop = childChannel.unsafe().tryEventLoop();
+            if (eventLoop == null || !childChannel.isActive()) {
+                logger.warn("Channel is being closed and cannot receive any messages.");
                 return;
             }
         }
@@ -92,6 +95,16 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
             pendingReadTasks -= 1;
             checkAndFlushReadComplete();
         });
+    }
+
+    private void checkAndFlushReadComplete() {
+        if (pendingReadTasks > 0) {
+            return;
+        }
+        for (DefaultChildVirtualChannel childChannel : readTouched) {
+            childChannel.unsafe().readComplete();
+        }
+        readTouched.clear();
     }
 
     private void routeNewChannel(ChannelHandlerContext context, EventLoop eventLoop, Key key, DatagramPacket packet) {
@@ -144,17 +157,17 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
                         .fireChannelRead(channel)
                         .fireChannelReadComplete());
 
-                channel.unsafe().register(eventLoop, channel.voidPromise());
+                channel.unsafe().register(eventLoop, channel.unsafe().voidPromise());
             } catch (Exception e) {
                 finishReadTask(context, packet);
-                channel.unsafe().close(channel.voidPromise());
                 virtualChannel().pipeline().fireExceptionCaught(e);
+                channel.unsafe().close(channel.unsafe().voidPromise());
                 return null;
             }
 
             EventExecutorUtil.executeInEventLoop(context.executor(), () -> {
                 readTouched.add(channel);
-                channel.doRead(message);
+                channel.unsafe().read(message);
             });
             finishReadTask(context, packet);
 
@@ -165,9 +178,9 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
             return;
         }
 
-        EventLoop newEventLoop = childChannel.eventLoop();
-        if (!childChannel.isActive()) {
-            // Channel is being closed and cannot receive any messages, so ignore.
+        EventLoop newEventLoop = childChannel.unsafe().tryEventLoop();
+        if (newEventLoop == null || !childChannel.isActive()) {
+            logger.warn("Channel is being closed and cannot receive any messages.");
             finishReadTask(context, packet);
             return;
         }
@@ -177,7 +190,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
 
     private void routeExistingChannel(ChannelHandlerContext context, DefaultChildVirtualChannel childChannel, Key key, DatagramPacket packet) {
         if (!childChannel.isActive()) {
-            // Channel is being closed and cannot receive any messages, so ignore.
+            logger.warn("Channel is being closed and cannot receive any messages.");
             finishReadTask(context, packet);
             return;
         }
@@ -186,6 +199,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
         Out message;
         try {
             routeContext = router.existingContext(key, childChannel);
+
             RouteResult<Out> messageResult = router.routeMessage(key, routeContext, packet);
             if (!messageResult.ok()) {
                 finishReadTask(context, packet);
@@ -200,7 +214,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
 
         EventExecutorUtil.executeInEventLoop(context.executor(), () -> {
             readTouched.add(childChannel);
-            childChannel.doRead(message);
+            childChannel.unsafe().read(message);
         });
         finishReadTask(context, packet);
     }
@@ -210,21 +224,11 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
         checkAndFlushReadComplete();
     }
 
-    private void checkAndFlushReadComplete() {
-        if (pendingReadTasks > 0) {
-            return;
-        }
-        for (DefaultChildVirtualChannel childChannel : readTouched) {
-            childChannel.doReadComplete();
-        }
-        readTouched.clear();
-    }
-
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext context) {
         super.channelWritabilityChanged(context);
         for (DefaultChildVirtualChannel childChannel : registry.values()) {
-            childChannel.pipeline().fireChannelWritabilityChanged();
+            childChannel.unsafe().writabilityChanged();
         }
     }
 }
