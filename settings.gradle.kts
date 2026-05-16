@@ -16,5 +16,5 @@ rootProject.name = "netty-virtual-udp"
 
 include(":netty-virtual-udp")
 include(":examples:common")
-include(":examples:game-server")
-include(":examples:game-client")
+include(":examples:server")
+include(":examples:client")
