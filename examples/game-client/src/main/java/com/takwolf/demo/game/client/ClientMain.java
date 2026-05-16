@@ -14,7 +14,6 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.netty.handler.logging.ByteBufFormat;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
@@ -40,9 +39,9 @@ public class ClientMain {
                         @Override
                         protected void initChannel(VirtualChannel channel) {
                             channel.pipeline()
-                                    .addLast(new LoggingHandler("UDP", LogLevel.INFO, ByteBufFormat.SIMPLE))
                                     .addLast(new GameCryptoDecoder(gameCrypto.getConversationId(), gameCrypto.getServerKey(), GameCrypto.NONCE_PREFIX_SERVER))
                                     .addLast(new GameCryptoEncoder(gameCrypto.getConversationId(), gameCrypto.getClientKey(), GameCrypto.NONCE_PREFIX_CLIENT, gameCrypto.getSequenceSeed()))
+                                    .addLast(new LoggingHandler("UDP", LogLevel.INFO))
                                     .addLast(new GameMessageDecoder())
                                     .addLast(new GameMessageEncoder())
                                     .addLast(new GameClientHandler());
