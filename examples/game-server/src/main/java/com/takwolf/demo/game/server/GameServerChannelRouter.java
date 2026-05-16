@@ -32,7 +32,7 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
         ByteBuf in = packet.content();
 
         if (in.readableBytes() < 4 + 8 + Aes256GcmUtils.TAG_BYTES_LENGTH) {
-            log.warn("Illegal data length {}, ignore", in.readableBytes());
+            log.warn("Illegal data length: {}", in.readableBytes());
             return Optional.empty();
         }
 
@@ -49,7 +49,7 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
     public RouteResult<GameCrypto> newContext(Integer conversationId) {
         UserService.LoginInfo loginInfo = userService.getLoginInfo(conversationId).orElse(null);
         if (loginInfo == null) {
-            log.warn("Illegal conversationId {}, ignore", conversationId);
+            log.warn("Illegal conversationId: {}", conversationId);
             return RouteResult.none();
         }
         GameCrypto gameCrypto = GameCrypto.fromLoginInfo(loginInfo, 0);
@@ -72,7 +72,7 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
 
         long sequence = in.readLong();
         if (sequence < 0) {
-            log.warn("Sequence overflow, ignore");
+            log.warn("Sequence overflow: {}", sequence);
             return RouteResult.none();
         }
 
@@ -93,7 +93,7 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
         try {
             plaintext = Aes256GcmUtils.decrypt(gameCrypto.getClientKey(), nonce, aad, ciphertext);
         } catch (GeneralSecurityException ignored) {
-            log.warn("Illegal ciphertext, ignore");
+            log.warn("Illegal ciphertext.");
             return RouteResult.none();
         }
 

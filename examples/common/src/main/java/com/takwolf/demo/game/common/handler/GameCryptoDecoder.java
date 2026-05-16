@@ -31,19 +31,19 @@ public class GameCryptoDecoder extends MessageToMessageDecoder<ByteBuf> {
     @Override
     protected void decode(ChannelHandlerContext context, ByteBuf in, List<Object> out) {
         if (in.readableBytes() < 4 + 8 + Aes256GcmUtils.TAG_BYTES_LENGTH) {
-            log.warn("Illegal data length {}, ignore", in.readableBytes());
+            log.warn("Illegal data length: {}", in.readableBytes());
             return;
         }
 
         int conversationId = in.readInt();
         if (conversationId != this.conversationId) {
-            log.warn("Illegal conversationId {}, ignore", conversationId);
+            log.warn("Illegal conversationId: {}", conversationId);
             return;
         }
 
         long sequence = in.readLong();
         if (sequence < 0) {
-            log.warn("Sequence overflow, ignore");
+            log.warn("Sequence overflow: {}", sequence);
             return;
         }
 
@@ -64,7 +64,7 @@ public class GameCryptoDecoder extends MessageToMessageDecoder<ByteBuf> {
             byte[] plaintext = Aes256GcmUtils.decrypt(key, nonce, aad, ciphertext);
             out.add(Unpooled.wrappedBuffer(plaintext));
         } catch (GeneralSecurityException ignored) {
-            log.warn("Illegal ciphertext, ignore");
+            log.warn("Illegal ciphertext.");
         }
     }
 }
