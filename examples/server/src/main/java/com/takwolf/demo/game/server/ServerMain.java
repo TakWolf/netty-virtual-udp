@@ -1,10 +1,13 @@
 package com.takwolf.demo.game.server;
 
-import com.takwolf.demo.game.common.handler.GameCryptoEncoder;
-import com.takwolf.demo.game.common.handler.GameMessageDecoder;
-import com.takwolf.demo.game.common.handler.GameMessageEncoder;
-import com.takwolf.demo.game.common.service.GameCrypto;
+import com.takwolf.demo.game.common.domain.CryptoInfo;
+import com.takwolf.demo.game.common.handler.CryptoEncoder;
+import com.takwolf.demo.game.common.handler.MessageDecoder;
+import com.takwolf.demo.game.common.handler.MessageEncoder;
 import com.takwolf.demo.game.common.service.UserService;
+import com.takwolf.demo.game.server.handler.ServerChannelRouter;
+import com.takwolf.demo.game.server.handler.ServerHandler;
+import com.takwolf.demo.game.server.handler.ServerRouteDecoder;
 import com.takwolf.netty.vudp.bootstrap.ServerVirtualBootstrap;
 import com.takwolf.netty.vudp.channel.ChildVirtualChannel;
 import io.netty.channel.Channel;
@@ -28,19 +31,19 @@ public class ServerMain {
                     .group(bossGroup, workerGroup)
                     .channel(NioDatagramChannel.class)
                     .handler(new LoggingHandler("UDP Parent", LogLevel.INFO))
-                    .router(new GameServerChannelRouter(userService))
+                    .router(new ServerChannelRouter(userService))
                     .childHandler(new ChannelInitializer<ChildVirtualChannel>() {
                         @Override
                         protected void initChannel(ChildVirtualChannel channel) {
-                            GameCrypto gameCrypto = channel.attr(GameCrypto.ATTR).get();
+                            CryptoInfo cryptoInfo = channel.attr(CryptoInfo.ATTR).get();
 
                             channel.pipeline()
-                                    .addLast(new GameServerRouteDecoder())
-                                    .addLast(new GameCryptoEncoder(gameCrypto.getConversationId(), gameCrypto.getServerKey(), GameCrypto.NONCE_PREFIX_SERVER, gameCrypto.getSequenceSeed()))
+                                    .addLast(new ServerRouteDecoder())
+                                    .addLast(new CryptoEncoder(cryptoInfo.getConversationId(), cryptoInfo.getServerKey(), CryptoInfo.NONCE_PREFIX_SERVER, cryptoInfo.getSequenceSeed()))
                                     .addLast(new LoggingHandler("UDP Child", LogLevel.INFO))
-                                    .addLast(new GameMessageDecoder())
-                                    .addLast(new GameMessageEncoder())
-                                    .addLast(new GameServerHandler());
+                                    .addLast(new MessageDecoder())
+                                    .addLast(new MessageEncoder())
+                                    .addLast(new ServerHandler());
                         }
                     });
 

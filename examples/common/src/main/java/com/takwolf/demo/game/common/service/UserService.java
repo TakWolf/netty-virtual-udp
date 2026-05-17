@@ -1,7 +1,6 @@
 package com.takwolf.demo.game.common.service;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import com.takwolf.demo.game.common.domain.LoginInfo;
 
 import java.util.Map;
 import java.util.Optional;
@@ -17,13 +16,5 @@ public class UserService {
 
     public Optional<LoginInfo> getLoginInfo(Integer conversationId) {
         return Optional.ofNullable(loginInfos.get(conversationId));
-    }
-
-    @Getter
-    @RequiredArgsConstructor
-    public static final class LoginInfo {
-        private final Integer conversationId;
-        private final String serverKey;
-        private final String clientKey;
     }
 }

@@ -1,4 +1,4 @@
-package com.takwolf.demo.game.server;
+package com.takwolf.demo.game.server.handler;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -8,7 +8,7 @@ import io.netty.util.concurrent.GlobalEventExecutor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class GameServerHandler extends SimpleChannelInboundHandler<String> {
+public class ServerHandler extends SimpleChannelInboundHandler<String> {
     private static final ChannelGroup allChannels = new DefaultChannelGroup("all", GlobalEventExecutor.INSTANCE);
 
     @Override

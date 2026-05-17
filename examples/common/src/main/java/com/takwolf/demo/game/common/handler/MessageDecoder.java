@@ -7,7 +7,7 @@ import io.netty.handler.codec.MessageToMessageDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-public class GameMessageDecoder extends MessageToMessageDecoder<ByteBuf> {
+public class MessageDecoder extends MessageToMessageDecoder<ByteBuf> {
     @Override
     protected void decode(ChannelHandlerContext context, ByteBuf in, List<Object> out) {
         byte[] data = new byte[in.readableBytes()];

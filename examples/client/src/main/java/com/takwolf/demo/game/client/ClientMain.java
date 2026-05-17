@@ -1,10 +1,12 @@
 package com.takwolf.demo.game.client;
 
-import com.takwolf.demo.game.common.handler.GameCryptoDecoder;
-import com.takwolf.demo.game.common.handler.GameCryptoEncoder;
-import com.takwolf.demo.game.common.handler.GameMessageDecoder;
-import com.takwolf.demo.game.common.handler.GameMessageEncoder;
-import com.takwolf.demo.game.common.service.GameCrypto;
+import com.takwolf.demo.game.client.handler.ClientHandler;
+import com.takwolf.demo.game.common.domain.CryptoInfo;
+import com.takwolf.demo.game.common.domain.LoginInfo;
+import com.takwolf.demo.game.common.handler.CryptoDecoder;
+import com.takwolf.demo.game.common.handler.CryptoEncoder;
+import com.takwolf.demo.game.common.handler.MessageDecoder;
+import com.takwolf.demo.game.common.handler.MessageEncoder;
 import com.takwolf.demo.game.common.service.UserService;
 import com.takwolf.netty.vudp.bootstrap.VirtualBootstrap;
 import com.takwolf.netty.vudp.channel.VirtualChannel;
@@ -26,8 +28,8 @@ import java.util.Objects;
 public class ClientMain {
     public static void main(String[] args) throws InterruptedException, IOException {
         UserService userService = new UserService();
-        UserService.LoginInfo loginInfo = userService.getLoginInfo(1).orElseThrow();
-        GameCrypto gameCrypto = GameCrypto.fromLoginInfo(loginInfo, 0);
+        LoginInfo loginInfo = userService.getLoginInfo(1).orElseThrow();
+        CryptoInfo cryptoInfo = CryptoInfo.fromLoginInfo(loginInfo, 0);
 
         EventLoopGroup ioGroup = new MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory());
 
@@ -39,12 +41,12 @@ public class ClientMain {
                         @Override
                         protected void initChannel(VirtualChannel channel) {
                             channel.pipeline()
-                                    .addLast(new GameCryptoDecoder(gameCrypto.getConversationId(), gameCrypto.getServerKey(), GameCrypto.NONCE_PREFIX_SERVER))
-                                    .addLast(new GameCryptoEncoder(gameCrypto.getConversationId(), gameCrypto.getClientKey(), GameCrypto.NONCE_PREFIX_CLIENT, gameCrypto.getSequenceSeed()))
+                                    .addLast(new CryptoDecoder(cryptoInfo.getConversationId(), cryptoInfo.getServerKey(), CryptoInfo.NONCE_PREFIX_SERVER))
+                                    .addLast(new CryptoEncoder(cryptoInfo.getConversationId(), cryptoInfo.getClientKey(), CryptoInfo.NONCE_PREFIX_CLIENT, cryptoInfo.getSequenceSeed()))
                                     .addLast(new LoggingHandler("UDP", LogLevel.INFO))
-                                    .addLast(new GameMessageDecoder())
-                                    .addLast(new GameMessageEncoder())
-                                    .addLast(new GameClientHandler());
+                                    .addLast(new MessageDecoder())
+                                    .addLast(new MessageEncoder())
+                                    .addLast(new ClientHandler());
                         }
                     });
 

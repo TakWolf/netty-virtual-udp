@@ -14,12 +14,12 @@ import java.security.GeneralSecurityException;
 import java.util.List;
 
 @Slf4j
-public class GameCryptoDecoder extends MessageToMessageDecoder<ByteBuf> {
+public class CryptoDecoder extends MessageToMessageDecoder<ByteBuf> {
     private final int conversationId;
     private final SecretKeySpec key;
     private final byte[] noncePrefix;
 
-    public GameCryptoDecoder(int conversationId, SecretKeySpec key, byte[] noncePrefix) {
+    public CryptoDecoder(int conversationId, SecretKeySpec key, byte[] noncePrefix) {
         if (noncePrefix.length != 4) {
             throw new IllegalArgumentException("noncePrefix must be 4 bytes");
         }

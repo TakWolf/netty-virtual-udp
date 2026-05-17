@@ -1,30 +1,29 @@
-package com.takwolf.demo.game.server;
+package com.takwolf.demo.game.server.handler;
 
-import com.takwolf.demo.game.common.service.GameCrypto;
+import com.takwolf.demo.game.common.domain.CryptoInfo;
+import com.takwolf.demo.game.common.domain.LoginInfo;
 import com.takwolf.demo.game.common.service.UserService;
 import com.takwolf.demo.game.common.util.Aes256GcmUtils;
+import com.takwolf.demo.game.server.domain.RouteMessage;
 import com.takwolf.netty.vudp.channel.ChildVirtualChannel;
 import com.takwolf.netty.vudp.router.RouteKeyChannelId;
 import com.takwolf.netty.vudp.router.RouteResult;
 import com.takwolf.netty.vudp.router.VirtualChannelRouter;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.DefaultByteBufHolder;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelId;
 import io.netty.channel.socket.DatagramPacket;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.crypto.spec.GCMParameterSpec;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.util.Optional;
 
 @Slf4j
 @RequiredArgsConstructor
-public class GameServerChannelRouter implements VirtualChannelRouter<Integer, GameCrypto, GameServerChannelRouter.RouteMessage> {
+public class ServerChannelRouter implements VirtualChannelRouter<Integer, CryptoInfo, RouteMessage> {
     private final UserService userService;
 
     @Override
@@ -46,28 +45,28 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
     }
 
     @Override
-    public RouteResult<GameCrypto> newContext(Integer conversationId) {
-        UserService.LoginInfo loginInfo = userService.getLoginInfo(conversationId).orElse(null);
+    public RouteResult<CryptoInfo> newContext(Integer conversationId) {
+        LoginInfo loginInfo = userService.getLoginInfo(conversationId).orElse(null);
         if (loginInfo == null) {
             log.warn("Illegal conversationId: {}", conversationId);
             return RouteResult.none();
         }
-        GameCrypto gameCrypto = GameCrypto.fromLoginInfo(loginInfo, 0);
-        return RouteResult.of(gameCrypto);
+        CryptoInfo cryptoInfo = CryptoInfo.fromLoginInfo(loginInfo, 0);
+        return RouteResult.of(cryptoInfo);
     }
 
     @Override
-    public GameCrypto existingContext(Integer conversationId, ChildVirtualChannel channel) {
-        return channel.attr(GameCrypto.ATTR).get();
+    public CryptoInfo existingContext(Integer conversationId, ChildVirtualChannel channel) {
+        return channel.attr(CryptoInfo.ATTR).get();
     }
 
     @Override
-    public void attachContext(Integer conversationId, GameCrypto gameCrypto, ChildVirtualChannel channel) {
-        channel.attr(GameCrypto.ATTR).set(gameCrypto);
+    public void attachContext(Integer conversationId, CryptoInfo cryptoInfo, ChildVirtualChannel channel) {
+        channel.attr(CryptoInfo.ATTR).set(cryptoInfo);
     }
 
     @Override
-    public RouteResult<RouteMessage> routeMessage(Integer conversationId, GameCrypto gameCrypto, DatagramPacket packet) {
+    public RouteResult<RouteMessage> routeMessage(Integer conversationId, CryptoInfo cryptoInfo, DatagramPacket packet) {
         ByteBuf in = packet.content();
 
         long sequence = in.readLong();
@@ -77,7 +76,7 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
         }
 
         ByteBuffer nonceBuffer = ByteBuffer.allocate(12);
-        nonceBuffer.put(GameCrypto.NONCE_PREFIX_CLIENT);
+        nonceBuffer.put(CryptoInfo.NONCE_PREFIX_CLIENT);
         nonceBuffer.putLong(sequence);
         GCMParameterSpec nonce = Aes256GcmUtils.createNonce(nonceBuffer.array());
 
@@ -91,24 +90,12 @@ public class GameServerChannelRouter implements VirtualChannelRouter<Integer, Ga
 
         byte[] plaintext;
         try {
-            plaintext = Aes256GcmUtils.decrypt(gameCrypto.getClientKey(), nonce, aad, ciphertext);
+            plaintext = Aes256GcmUtils.decrypt(cryptoInfo.getClientKey(), nonce, aad, ciphertext);
         } catch (GeneralSecurityException ignored) {
             log.warn("Illegal ciphertext.");
             return RouteResult.none();
         }
 
         return RouteResult.of(new RouteMessage(packet.sender(), sequence, Unpooled.wrappedBuffer(plaintext)));
-    }
-
-    @Getter
-    public static final class RouteMessage extends DefaultByteBufHolder {
-        private final InetSocketAddress remoteAddress;
-        private final long sequence;
-
-        public RouteMessage(InetSocketAddress remoteAddress, long sequence, ByteBuf data) {
-            super(data);
-            this.remoteAddress = remoteAddress;
-            this.sequence = sequence;
-        }
     }
 }

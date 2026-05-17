@@ -1,4 +1,4 @@
-package com.takwolf.demo.game.common.service;
+package com.takwolf.demo.game.common.domain;
 
 import com.takwolf.demo.game.common.util.Aes256GcmUtils;
 import io.netty.util.AttributeKey;
@@ -13,17 +13,17 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Getter
 @RequiredArgsConstructor
-public final class GameCrypto {
-    public static final AttributeKey<GameCrypto> ATTR = AttributeKey.valueOf("gameCrypto");
+public final class CryptoInfo {
+    public static final AttributeKey<CryptoInfo> ATTR = AttributeKey.valueOf("cryptoInfo");
 
     public static final byte[] NONCE_PREFIX_SERVER = "S2C0".getBytes(StandardCharsets.UTF_8);
     public static final byte[] NONCE_PREFIX_CLIENT = "C2S0".getBytes(StandardCharsets.UTF_8);
 
     @SneakyThrows
-    public static GameCrypto fromLoginInfo(UserService.LoginInfo loginInfo, long sequenceInitialValue) {
+    public static CryptoInfo fromLoginInfo(LoginInfo loginInfo, long sequenceInitialValue) {
         SecretKeySpec serverKey = Aes256GcmUtils.createKey(Hex.decodeHex(loginInfo.getServerKey()));
         SecretKeySpec clientKey = Aes256GcmUtils.createKey(Hex.decodeHex(loginInfo.getClientKey()));
-        return new GameCrypto(loginInfo.getConversationId(), serverKey, clientKey, new AtomicLong(sequenceInitialValue));
+        return new CryptoInfo(loginInfo.getConversationId(), serverKey, clientKey, new AtomicLong(sequenceInitialValue));
     }
 
     private final int conversationId;

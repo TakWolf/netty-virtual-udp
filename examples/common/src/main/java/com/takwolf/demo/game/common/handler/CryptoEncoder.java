@@ -11,13 +11,13 @@ import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class GameCryptoEncoder extends MessageToByteEncoder<ByteBuf> {
+public class CryptoEncoder extends MessageToByteEncoder<ByteBuf> {
     private final int conversationId;
     private final SecretKeySpec key;
     private final byte[] noncePrefix;
     private final AtomicLong sequenceSeed;
 
-    public GameCryptoEncoder(int conversationId, SecretKeySpec key, byte[] noncePrefix, AtomicLong sequenceSeed) {
+    public CryptoEncoder(int conversationId, SecretKeySpec key, byte[] noncePrefix, AtomicLong sequenceSeed) {
         if (noncePrefix.length != 4) {
             throw new IllegalArgumentException("noncePrefix must be 4 bytes");
         }
