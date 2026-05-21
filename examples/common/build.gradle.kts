@@ -9,9 +9,9 @@ java {
 }
 
 dependencies {
-    compileOnly("org.jspecify:jspecify:1.0.0")
+    compileOnly("org.jspecify:jspecify:1.0.1")
 
-    api("io.netty:netty-all:4.2.13.Final")
+    api("io.netty:netty-all:4.2.17.Final")
     api(project(":netty-virtual-udp"))
 
     api("org.apache.commons:commons-lang3:3.20.0")

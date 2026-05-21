@@ -14,10 +14,10 @@ tasks.compileJava {
 }
 
 dependencies {
-    compileOnly("org.jspecify:jspecify:1.0.0")
+    compileOnly("org.jspecify:jspecify:1.0.1")
 
-    compileOnly("io.netty:netty-all:4.2.13.Final")
-    testImplementation("io.netty:netty-all:4.2.13.Final")
+    compileOnly("io.netty:netty-all:4.2.17.Final")
+    testImplementation("io.netty:netty-all:4.2.17.Final")
 
     testImplementation(platform("org.junit:junit-bom:6.0.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
