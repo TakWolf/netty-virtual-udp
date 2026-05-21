@@ -9,7 +9,7 @@ java {
 }
 
 dependencies {
-    compileOnly("org.jspecify:jspecify:1.0.0")
+    compileOnly("org.jspecify:jspecify:1.0.1")
 
     implementation(project(":examples:common"))
 
