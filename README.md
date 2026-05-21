@@ -8,7 +8,7 @@
 ## Installation
 
 ```kotlin
-implementation("io.netty:netty-all:4.2.13.Final")
+implementation("io.netty:netty-all:4.2.17.Final")
 implementation("io.github.takwolf.netty:netty-virtual-udp:0.0.4")
 ```
 
