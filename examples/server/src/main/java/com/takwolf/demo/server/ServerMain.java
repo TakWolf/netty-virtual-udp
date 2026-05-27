@@ -2,8 +2,6 @@ package com.takwolf.demo.server;
 
 import com.takwolf.demo.common.domain.CryptoInfo;
 import com.takwolf.demo.common.handler.CryptoEncoder;
-import com.takwolf.demo.common.handler.MessageDecoder;
-import com.takwolf.demo.common.handler.MessageEncoder;
 import com.takwolf.demo.common.service.UserService;
 import com.takwolf.demo.server.handler.ServerChannelRouter;
 import com.takwolf.demo.server.handler.ServerHandler;
@@ -16,8 +14,12 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+
+import java.nio.charset.StandardCharsets;
 
 public class ServerMain {
     public static void main(String[] args) throws InterruptedException {
@@ -41,8 +43,8 @@ public class ServerMain {
                                     .addLast(new ServerRouteDecoder())
                                     .addLast(new CryptoEncoder(cryptoInfo.getConversationId(), cryptoInfo.getServerKey(), CryptoInfo.NONCE_PREFIX_SERVER, cryptoInfo.getSequenceSeed()))
                                     .addLast(new LoggingHandler("UDP Child", LogLevel.INFO))
-                                    .addLast(new MessageDecoder())
-                                    .addLast(new MessageEncoder())
+                                    .addLast(new StringDecoder(StandardCharsets.UTF_8))
+                                    .addLast(new StringEncoder(StandardCharsets.UTF_8))
                                     .addLast(new ServerHandler());
                         }
                     });

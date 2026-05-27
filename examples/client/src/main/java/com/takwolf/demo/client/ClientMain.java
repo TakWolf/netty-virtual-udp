@@ -5,8 +5,6 @@ import com.takwolf.demo.common.domain.CryptoInfo;
 import com.takwolf.demo.common.domain.LoginInfo;
 import com.takwolf.demo.common.handler.CryptoDecoder;
 import com.takwolf.demo.common.handler.CryptoEncoder;
-import com.takwolf.demo.common.handler.MessageDecoder;
-import com.takwolf.demo.common.handler.MessageEncoder;
 import com.takwolf.demo.common.service.UserService;
 import com.takwolf.netty.vudp.bootstrap.VirtualBootstrap;
 import com.takwolf.netty.vudp.channel.VirtualChannel;
@@ -16,6 +14,8 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
@@ -44,8 +44,8 @@ public class ClientMain {
                                     .addLast(new CryptoDecoder(cryptoInfo.getConversationId(), cryptoInfo.getServerKey(), CryptoInfo.NONCE_PREFIX_SERVER))
                                     .addLast(new CryptoEncoder(cryptoInfo.getConversationId(), cryptoInfo.getClientKey(), CryptoInfo.NONCE_PREFIX_CLIENT, cryptoInfo.getSequenceSeed()))
                                     .addLast(new LoggingHandler("UDP", LogLevel.INFO))
-                                    .addLast(new MessageDecoder())
-                                    .addLast(new MessageEncoder())
+                                    .addLast(new StringDecoder(StandardCharsets.UTF_8))
+                                    .addLast(new StringEncoder(StandardCharsets.UTF_8))
                                     .addLast(new ClientHandler());
                         }
                     });
