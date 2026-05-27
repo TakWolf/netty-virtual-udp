@@ -1,18 +1,12 @@
 package com.takwolf.netty.vudp.router;
 
 import com.takwolf.netty.vudp.channel.ChildVirtualChannel;
-import io.netty.channel.ChannelId;
-import io.netty.channel.DefaultChannelId;
 import io.netty.channel.socket.DatagramPacket;
 
 import java.util.Optional;
 
 public interface VirtualChannelRouter<Key, RouteContext, Out> {
     Optional<Key> routeKey(DatagramPacket packet) throws Exception;
-
-    default ChannelId channelId(Key key) throws Exception {
-        return DefaultChannelId.newInstance();
-    }
 
     default RouteResult<RouteContext> newContext(Key key) throws Exception {
         return RouteResult.of();

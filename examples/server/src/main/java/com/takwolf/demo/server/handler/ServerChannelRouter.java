@@ -6,12 +6,10 @@ import com.takwolf.demo.common.service.UserService;
 import com.takwolf.demo.common.util.Aes256GcmUtils;
 import com.takwolf.demo.server.domain.RouteMessage;
 import com.takwolf.netty.vudp.channel.ChildVirtualChannel;
-import com.takwolf.netty.vudp.router.RouteKeyChannelId;
 import com.takwolf.netty.vudp.router.RouteResult;
 import com.takwolf.netty.vudp.router.VirtualChannelRouter;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelId;
 import io.netty.channel.socket.DatagramPacket;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,11 +35,6 @@ public class ServerChannelRouter implements VirtualChannelRouter<Integer, Crypto
 
         int conversationId = in.readInt();
         return Optional.of(conversationId);
-    }
-
-    @Override
-    public ChannelId channelId(Integer conversationId) {
-        return new RouteKeyChannelId(conversationId);
     }
 
     @Override
