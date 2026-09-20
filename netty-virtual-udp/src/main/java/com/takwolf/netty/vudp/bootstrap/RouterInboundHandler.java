@@ -27,7 +27,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
 
     private final Map<Key, DefaultChildVirtualChannel> registry = new ConcurrentHashMap<>();
     private final Set<DefaultChildVirtualChannel> readTouched = new HashSet<>();
-    private int pendingReadTasks;
+    private int pendingReadTaskCount;
 
     RouterInboundHandler(
             VirtualChannel virtualChannel,
@@ -78,7 +78,7 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
             }
         }
 
-        pendingReadTasks += 1;
+        pendingReadTaskCount += 1;
         packet.retain();
         EventExecutorUtil.executeInEventLoop(eventLoop, () -> {
             if (childChannel == null) {
@@ -92,13 +92,13 @@ final class RouterInboundHandler<Key, RouteContext, Out> extends ForwardInboundH
     private void finishReadTask(ChannelHandlerContext context, DatagramPacket packet) {
         packet.release();
         EventExecutorUtil.executeInEventLoop(context.executor(), () -> {
-            pendingReadTasks -= 1;
+            pendingReadTaskCount -= 1;
             checkAndFlushReadComplete();
         });
     }
 
     private void checkAndFlushReadComplete() {
-        if (pendingReadTasks > 0) {
+        if (pendingReadTaskCount > 0) {
             return;
         }
         for (DefaultChildVirtualChannel childChannel : readTouched) {
